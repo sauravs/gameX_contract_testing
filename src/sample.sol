@@ -5,8 +5,10 @@ import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/
 import {OwnerIsCreator} from "@chainlink/contracts-ccip/src/v0.8/shared/access/OwnerIsCreator.sol";
 import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
 import {CCIPReceiver} from "@chainlink/contracts-ccip/src/v0.8/ccip/applications/CCIPReceiver.sol";
-import {IERC20} from "@chainlink/contracts-ccip/src/v0.8/vendor/openzeppelin-solidity/v4.8.3/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@chainlink/contracts-ccip/src/v0.8/vendor/openzeppelin-solidity/v4.8.3/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from
+    "@chainlink/contracts-ccip/src/v0.8/vendor/openzeppelin-solidity/v4.8.3/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from
+    "@chainlink/contracts-ccip/src/v0.8/vendor/openzeppelin-solidity/v4.8.3/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * THIS IS AN EXAMPLE CONTRACT THAT USES HARDCODED VALUES FOR CLARITY.
@@ -28,22 +30,26 @@ contract Messenger is CCIPReceiver, OwnerIsCreator {
     error InvalidReceiverAddress(); // Used when the receiver address is 0.
 
     // Event emitted when a message is sent to another chain.
-    event MessageSent(
-        bytes32 indexed messageId, // The unique ID of the CCIP message.
-        uint64 indexed destinationChainSelector, // The chain selector of the destination chain.
-        address receiver, // The address of the receiver on the destination chain.
-        string text, // The text being sent.
-        address feeToken, // the token address used to pay CCIP fees.
-        uint256 fees // The fees paid for sending the CCIP message.
+    event MessageSent( // The unique ID of the CCIP message.
+        // The chain selector of the destination chain.
+        // The address of the receiver on the destination chain.
+        // The text being sent.
+        // the token address used to pay CCIP fees.
+        // The fees paid for sending the CCIP message.
+        bytes32 indexed messageId,
+        uint64 indexed destinationChainSelector,
+        address receiver,
+        string text,
+        address feeToken,
+        uint256 fees
     );
 
     // Event emitted when a message is received from another chain.
-    event MessageReceived(
-        bytes32 indexed messageId, // The unique ID of the CCIP message.
-        uint64 indexed sourceChainSelector, // The chain selector of the source chain.
-        address sender, // The address of the sender from the source chain.
-        string text // The text that was received.
-    );
+    event MessageReceived( // The unique ID of the CCIP message.
+        // The chain selector of the source chain.
+        // The address of the sender from the source chain.
+        // The text that was received.
+    bytes32 indexed messageId, uint64 indexed sourceChainSelector, address sender, string text);
 
     bytes32 private s_lastReceivedMessageId; // Store the last received messageId.
     string private s_lastReceivedText; // Store the last received text.
@@ -69,8 +75,9 @@ contract Messenger is CCIPReceiver, OwnerIsCreator {
     /// @dev Modifier that checks if the chain with the given destinationChainSelector is allowlisted.
     /// @param _destinationChainSelector The selector of the destination chain.
     modifier onlyAllowlistedDestinationChain(uint64 _destinationChainSelector) {
-        if (!allowlistedDestinationChains[_destinationChainSelector])
+        if (!allowlistedDestinationChains[_destinationChainSelector]) {
             revert DestinationChainNotAllowlisted(_destinationChainSelector);
+        }
         _;
     }
 
@@ -78,8 +85,9 @@ contract Messenger is CCIPReceiver, OwnerIsCreator {
     /// @param _sourceChainSelector The selector of the destination chain.
     /// @param _sender The address of the sender.
     modifier onlyAllowlisted(uint64 _sourceChainSelector, address _sender) {
-        if (!allowlistedSourceChains[_sourceChainSelector])
+        if (!allowlistedSourceChains[_sourceChainSelector]) {
             revert SourceChainNotAllowlisted(_sourceChainSelector);
+        }
         if (!allowlistedSenders[_sender]) revert SenderNotAllowlisted(_sender);
         _;
     }
@@ -92,18 +100,12 @@ contract Messenger is CCIPReceiver, OwnerIsCreator {
     }
 
     /// @dev Updates the allowlist status of a destination chain for transactions.
-    function allowlistDestinationChain(
-        uint64 _destinationChainSelector,
-        bool allowed
-    ) external onlyOwner {
+    function allowlistDestinationChain(uint64 _destinationChainSelector, bool allowed) external onlyOwner {
         allowlistedDestinationChains[_destinationChainSelector] = allowed;
     }
 
     /// @dev Updates the allowlist status of a source chain for transactions.
-    function allowlistSourceChain(
-        uint64 _sourceChainSelector,
-        bool allowed
-    ) external onlyOwner {
+    function allowlistSourceChain(uint64 _sourceChainSelector, bool allowed) external onlyOwner {
         allowlistedSourceChains[_sourceChainSelector] = allowed;
     }
 
@@ -119,11 +121,7 @@ contract Messenger is CCIPReceiver, OwnerIsCreator {
     /// @param _receiver The address of the recipient on the destination blockchain.
     /// @param _text The text to be sent.
     /// @return messageId The ID of the CCIP message that was sent.
-    function sendMessagePayLINK(
-        uint64 _destinationChainSelector,
-        address _receiver,
-        string calldata _text
-    )
+    function sendMessagePayLINK(uint64 _destinationChainSelector, address _receiver, string calldata _text)
         external
         onlyOwner
         onlyAllowlistedDestinationChain(_destinationChainSelector)
@@ -131,11 +129,7 @@ contract Messenger is CCIPReceiver, OwnerIsCreator {
         returns (bytes32 messageId)
     {
         // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
-        Client.EVM2AnyMessage memory evm2AnyMessage = _buildCCIPMessage(
-            _receiver,
-            _text,
-            address(s_linkToken)
-        );
+        Client.EVM2AnyMessage memory evm2AnyMessage = _buildCCIPMessage(_receiver, _text, address(s_linkToken));
 
         // Initialize a router client instance to interact with cross-chain router
         IRouterClient router = IRouterClient(this.getRouter());
@@ -143,8 +137,9 @@ contract Messenger is CCIPReceiver, OwnerIsCreator {
         // Get the fee required to send the CCIP message
         uint256 fees = router.getFee(_destinationChainSelector, evm2AnyMessage);
 
-        if (fees > s_linkToken.balanceOf(address(this)))
+        if (fees > s_linkToken.balanceOf(address(this))) {
             revert NotEnoughBalance(s_linkToken.balanceOf(address(this)), fees);
+        }
 
         // approve the Router to transfer LINK tokens on contract's behalf. It will spend the fees in LINK
         s_linkToken.approve(address(router), fees);
@@ -153,14 +148,7 @@ contract Messenger is CCIPReceiver, OwnerIsCreator {
         messageId = router.ccipSend(_destinationChainSelector, evm2AnyMessage);
 
         // Emit an event with message details
-        emit MessageSent(
-            messageId,
-            _destinationChainSelector,
-            _receiver,
-            _text,
-            address(s_linkToken),
-            fees
-        );
+        emit MessageSent(messageId, _destinationChainSelector, _receiver, _text, address(s_linkToken), fees);
 
         // Return the CCIP message ID
         return messageId;
@@ -173,11 +161,7 @@ contract Messenger is CCIPReceiver, OwnerIsCreator {
     /// @param _receiver The address of the recipient on the destination blockchain.
     /// @param _text The text to be sent.
     /// @return messageId The ID of the CCIP message that was sent.
-    function sendMessagePayNative(
-        uint64 _destinationChainSelector,
-        address _receiver,
-        string calldata _text
-    )
+    function sendMessagePayNative(uint64 _destinationChainSelector, address _receiver, string calldata _text)
         external
         onlyOwner
         onlyAllowlistedDestinationChain(_destinationChainSelector)
@@ -185,11 +169,7 @@ contract Messenger is CCIPReceiver, OwnerIsCreator {
         returns (bytes32 messageId)
     {
         // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
-        Client.EVM2AnyMessage memory evm2AnyMessage = _buildCCIPMessage(
-            _receiver,
-            _text,
-            address(0)
-        );
+        Client.EVM2AnyMessage memory evm2AnyMessage = _buildCCIPMessage(_receiver, _text, address(0));
 
         // Initialize a router client instance to interact with cross-chain router
         IRouterClient router = IRouterClient(this.getRouter());
@@ -197,39 +177,25 @@ contract Messenger is CCIPReceiver, OwnerIsCreator {
         // Get the fee required to send the CCIP message
         uint256 fees = router.getFee(_destinationChainSelector, evm2AnyMessage);
 
-        if (fees > address(this).balance)
+        if (fees > address(this).balance) {
             revert NotEnoughBalance(address(this).balance, fees);
+        }
 
         // Send the CCIP message through the router and store the returned CCIP message ID
-        messageId = router.ccipSend{value: fees}(
-            _destinationChainSelector,
-            evm2AnyMessage
-        );
+        messageId = router.ccipSend{value: fees}(_destinationChainSelector, evm2AnyMessage);
 
         // Emit an event with message details
-        emit MessageSent(
-            messageId,
-            _destinationChainSelector,
-            _receiver,
-            _text,
-            address(0),
-            fees
-        );
+        emit MessageSent(messageId, _destinationChainSelector, _receiver, _text, address(0), fees);
 
         // Return the CCIP message ID
         return messageId;
     }
 
     /// handle a received message
-    function _ccipReceive(
-        Client.Any2EVMMessage memory any2EvmMessage
-    )
+    function _ccipReceive(Client.Any2EVMMessage memory any2EvmMessage)
         internal
         override
-        onlyAllowlisted(
-            any2EvmMessage.sourceChainSelector,
-            abi.decode(any2EvmMessage.sender, (address))
-        ) // Make sure source chain and sender are allowlisted
+        onlyAllowlisted(any2EvmMessage.sourceChainSelector, abi.decode(any2EvmMessage.sender, (address))) // Make sure source chain and sender are allowlisted
     {
         s_lastReceivedMessageId = any2EvmMessage.messageId; // fetch the messageId
         s_lastReceivedText = abi.decode(any2EvmMessage.data, (string)); // abi-decoding of the sent text
@@ -239,7 +205,7 @@ contract Messenger is CCIPReceiver, OwnerIsCreator {
             any2EvmMessage.sourceChainSelector, // fetch the source chain identifier (aka selector)
             abi.decode(any2EvmMessage.sender, (address)), // abi-decoding of the sender address,
             abi.decode(any2EvmMessage.data, (string))
-        );
+            );
     }
 
     /// @notice Construct a CCIP message.
@@ -248,34 +214,29 @@ contract Messenger is CCIPReceiver, OwnerIsCreator {
     /// @param _text The string data to be sent.
     /// @param _feeTokenAddress The address of the token used for fees. Set address(0) for native gas.
     /// @return Client.EVM2AnyMessage Returns an EVM2AnyMessage struct which contains information for sending a CCIP message.
-    function _buildCCIPMessage(
-        address _receiver,
-        string calldata _text,
-        address _feeTokenAddress
-    ) private pure returns (Client.EVM2AnyMessage memory) {
+    function _buildCCIPMessage(address _receiver, string calldata _text, address _feeTokenAddress)
+        private
+        pure
+        returns (Client.EVM2AnyMessage memory)
+    {
         // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
-        return
-            Client.EVM2AnyMessage({
-                receiver: abi.encode(_receiver), // ABI-encoded receiver address
-                data: abi.encode(_text), // ABI-encoded string
-                tokenAmounts: new Client.EVMTokenAmount[](0), // Empty array aas no tokens are transferred
-                extraArgs: Client._argsToBytes(
-                    // Additional arguments, setting gas limit
-                    Client.EVMExtraArgsV1({gasLimit: 200_000})
+        return Client.EVM2AnyMessage({
+            receiver: abi.encode(_receiver), // ABI-encoded receiver address
+            data: abi.encode(_text), // ABI-encoded string
+            tokenAmounts: new Client.EVMTokenAmount[](0), // Empty array aas no tokens are transferred
+            extraArgs: Client._argsToBytes(
+                // Additional arguments, setting gas limit
+                Client.EVMExtraArgsV1({gasLimit: 200_000})
                 ),
-                // Set the feeToken to a feeTokenAddress, indicating specific asset will be used for fees
-                feeToken: _feeTokenAddress
-            });
+            // Set the feeToken to a feeTokenAddress, indicating specific asset will be used for fees
+            feeToken: _feeTokenAddress
+        });
     }
 
     /// @notice Fetches the details of the last received message.
     /// @return messageId The ID of the last received message.
     /// @return text The last received text.
-    function getLastReceivedMessageDetails()
-        external
-        view
-        returns (bytes32 messageId, string memory text)
-    {
+    function getLastReceivedMessageDetails() external view returns (bytes32 messageId, string memory text) {
         return (s_lastReceivedMessageId, s_lastReceivedText);
     }
 
@@ -296,7 +257,7 @@ contract Messenger is CCIPReceiver, OwnerIsCreator {
         if (amount == 0) revert NothingToWithdraw();
 
         // Attempt to send the funds, capturing the success status and discarding any return data
-        (bool sent, ) = _beneficiary.call{value: amount}("");
+        (bool sent,) = _beneficiary.call{value: amount}("");
 
         // Revert if the send failed, with information about the attempted transfer
         if (!sent) revert FailedToWithdrawEth(msg.sender, _beneficiary, amount);
@@ -306,10 +267,7 @@ contract Messenger is CCIPReceiver, OwnerIsCreator {
     /// @dev This function reverts with a 'NothingToWithdraw' error if there are no tokens to withdraw.
     /// @param _beneficiary The address to which the tokens will be sent.
     /// @param _token The contract address of the ERC20 token to be withdrawn.
-    function withdrawToken(
-        address _beneficiary,
-        address _token
-    ) public onlyOwner {
+    function withdrawToken(address _beneficiary, address _token) public onlyOwner {
         // Retrieve the balance of this contract
         uint256 amount = IERC20(_token).balanceOf(address(this));
 

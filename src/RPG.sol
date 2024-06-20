@@ -12,6 +12,7 @@ import "./RPGItemUtils.sol";
 
 contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     using Strings for uint256;
+
     uint8[] private colorRanges;
     uint256 public mintPrice;
     uint256 private _nextTokenId;
@@ -36,11 +37,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     mapping(bytes32 => StatType) public newStatMap; // hash of StatType -> StatType   // @audit made it public for testing purpose
 
     //////------events-----//////////////////////////////////////////////////////D//////////////////////////////////////////////////////////////////////////////
-    event NftMinted(
-        address indexed recipient,
-        uint256 indexed tokenId,
-        uint256 indexed timestamp
-    );
+    event NftMinted(address indexed recipient, uint256 indexed tokenId, uint256 indexed timestamp);
     event Transfer(address indexed sender, uint256 indexed amount);
 
     /////------MODIFIERS---///////////////////////////////////////////////////////D//////////////////////////////////////////////////////////////////////////////
@@ -49,10 +46,12 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
         require(msg.sender == _ccipHandler, "Caller is not the CCIP router");
         _;
     }
+
     modifier isUnlocked(uint256 tokenId) {
         require(tokenLockedTill[tokenId] <= block.timestamp, "Token is locked");
         _;
     }
+
     modifier isTokenMinted(uint256 tokenId) {
         require(_ownerOf(tokenId) != address(0), "Token is not Minted");
         _;
@@ -60,7 +59,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
 
     constructor()
         ERC721("Sword", "SW")
-        Ownable(0xa1293A8bFf9323aAd0419E46Dd9846Cc7363D44b)
+        Ownable(0xB1293a8BFf9323AaD0419e46dd9846cC7363d44B) //@auditV2 :is cciphandler contract is owner of rpg contract??seems incorrect
     {
         baseStat.stat1 = 10;
         baseStat.stat2 = 20;
@@ -79,19 +78,14 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
         emit Transfer(msg.sender, msg.value);
     }
 
-    function lockStatus(uint256 tokenId)
-        public
-        view
-        isTokenMinted(tokenId)
-        returns (bool)
-    {
+    function lockStatus(uint256 tokenId) public view isTokenMinted(tokenId) returns (bool) {
         return (tokenLockedTill[tokenId] > block.timestamp);
     }
 
-    function setTokenLockStatus(uint256 tokenId, uint256 unlockTime) //CCIP use
-        public
-        onlyCCIPRouter
-    {
+    function setTokenLockStatus(
+        uint256 tokenId,
+        uint256 unlockTime //CCIP use
+    ) public onlyCCIPRouter {
         tokenLockedTill[tokenId] = unlockTime;
     }
 
@@ -110,7 +104,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
 
     function setMintPrice(uint256 _mintPrice) external onlyOwner {
         //@dev added modifier
-        require(_mintPrice >= 0, "invalid price");
+        require(_mintPrice >= 0, "invalid price");   //@auditV2 : should be >0 (if zero selling it for free?) ,otherwise we do not require this require statement,anyways it will only take upto unit256.max as a param
         mintPrice = _mintPrice;
     }
 
@@ -118,17 +112,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     //@dev it is working fine now
     function getTokenStats(
         uint256 tokenId //@audit what is the purpose of this,confusion with getStats()
-    )
-        public
-        view
-        isTokenMinted(tokenId)
-        returns (
-            uint8,
-            uint8,
-            uint8,
-            uint8
-        )
-    {
+    ) public view isTokenMinted(tokenId) returns (uint8, uint8, uint8, uint8) {
         StatType memory stats = upgradeMapping[tokenId];
         return (
             stats.stat1 + baseStat.stat1,
@@ -171,12 +155,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
         // @audit //@dev this is required to maintain chain and sync all the chain nfts
         require(
             _parentChainId == block.chainid,
-            string(
-                abi.encodePacked(
-                    "Mint not allowed, You can mint on ChainId : ",
-                    _parentChainId.toString()
-                )
-            )
+            string(abi.encodePacked("Mint not allowed, You can mint on ChainId : ", _parentChainId.toString()))
         );
         require(msg.value == mintPrice, "Insufficient Ether");
         uint256 tokenId = _nextTokenId++;
@@ -185,32 +164,16 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
         emit NftMinted(msg.sender, tokenId, block.timestamp);
     }
 
-    function ownerOf(uint256 tokenId)
-        public
-        view
-        virtual
-        override
-        returns (address)
-    {
+    function ownerOf(uint256 tokenId) public view virtual override returns (address) {
         return _ownerOf(tokenId);
     }
 
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        override(ERC721)
-        isTokenMinted(tokenId)
-        returns (string memory)
-    {
+    function tokenURI(uint256 tokenId) public view override (ERC721) isTokenMinted(tokenId) returns (string memory) {
         bool tokenLockStatus = lockStatus(tokenId);
         string memory imgSVG = generateSVG(
             tokenLockStatus ? "#808080" : powerLevelColor(tokenId),
-            tokenLockStatus
-                ? "??"
-                : Strings.toString(getStat(statLabels[0], tokenId)),
-            tokenLockStatus
-                ? "??"
-                : Strings.toString(getStat(statLabels[1], tokenId)),
+            tokenLockStatus ? "??" : Strings.toString(getStat(statLabels[0], tokenId)),
+            tokenLockStatus ? "??" : Strings.toString(getStat(statLabels[1], tokenId)),
             tokenLockStatus ? "??" : Strings.toString(powerLevel__(tokenId)),
             tokenLockStatus ? lockedItemImage : itemImage__,
             name()
@@ -230,21 +193,14 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
             )
         );
 
-        string memory finalTokenURI = string(
-            abi.encodePacked("data:application/json;base64,", json)
-        );
+        string memory finalTokenURI = string(abi.encodePacked("data:application/json;base64,", json));
         return finalTokenURI;
     }
 
-    function upgrade(uint256 tokenId)
-        public
-        payable
-        isTokenMinted(tokenId)
-        isUnlocked(tokenId)
-    {
+    function upgrade(uint256 tokenId) public payable isTokenMinted(tokenId) isUnlocked(tokenId) {
         StatType memory previousStat = upgradeMapping[tokenId];
         StatType memory newStat = calculateUpgrade(previousStat);
-        require(msg.value >= calculatePrice(newStat),"insufficient fund for upgrade");
+        require(msg.value >= calculatePrice(newStat), "insufficient fund for upgrade");
         upgradeMapping[tokenId] = newStat;
     }
 
@@ -278,42 +234,27 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     // @audit power level -> 0 ,1 ,3  // basically it shows value of that asset in marketplace
     function powerLevel__(uint256 tokenId) private view returns (uint256) {
         StatType memory previousStat = upgradeMapping[tokenId];
-        return
-            ((previousStat.stat1 + baseStat.stat1) +
-                (previousStat.stat2 + baseStat.stat2)) / 2;
+        return ((previousStat.stat1 + baseStat.stat1) + (previousStat.stat2 + baseStat.stat2)) / 2;
     }
 
-    function powerLevelColor(uint256 tokenId)
-        private 
-        view
-        returns (string memory)
-    {
+    function powerLevelColor(uint256 tokenId) private view returns (string memory) {
         uint256 powerlevel = powerLevel__(tokenId);
         if (powerlevel == 0) return svgColors[0];
         for (uint256 i; i < colorRanges.length - 1; i++) {
-            if (
-                powerlevel >= colorRanges[i] && powerlevel < colorRanges[i + 1]
-            ) {
+            if (powerlevel >= colorRanges[i] && powerlevel < colorRanges[i + 1]) {
                 return svgColors[i];
             }
         }
         return svgColors[0];
     }
-    
-    function statPriceMultiplier__(StatType memory stat)
-        private 
-        pure
-        returns (uint256)
-    {
+
+    function statPriceMultiplier__(StatType memory stat) private pure returns (uint256) {
         return ((uint256(stat.stat1) + uint256(stat.stat2)) * 100) / 2; //For considering decimal (denominator averageing out)
     }
 
     //@audit could be made private
     //@dev done
-    function calculateUpgrade(StatType memory previousStat)
-        public  
-        returns (StatType memory)
-    {
+    function calculateUpgrade(StatType memory previousStat) public returns (StatType memory) {
         bytes32 hash = _generateStatHash(previousStat);
         StatType memory newStat = newStatMap[hash];
         if (isEmptyStat(newStat)) {
@@ -323,11 +264,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
         return newStat;
     }
 
-    function calculateStat__(StatType memory previousStat, uint8 _increment)
-        private 
-        pure
-        returns (StatType memory)
-    {
+    function calculateStat__(StatType memory previousStat, uint8 _increment) private pure returns (StatType memory) {
         previousStat.stat1 += _increment;
         previousStat.stat2 += _increment;
         if (previousStat.stat1 > 100) {
@@ -351,11 +288,13 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
         isUnlocked(tokenId)
         returns (uint8 stat)
     {
-        if (stringEqual(statLabel, statLabels[0]))
+        if (stringEqual(statLabel, statLabels[0])) {
             return upgradeMapping[tokenId].stat1 + baseStat.stat1;
-        else if (stringEqual(statLabel, statLabels[1]))
+        } else if (stringEqual(statLabel, statLabels[1])) {
             return upgradeMapping[tokenId].stat2 + baseStat.stat2;
-        else return 0;
+        } else {
+            return 0;
+        }
     }
 
     //////////////////////////////////////////////////////////////////D///////////////////////////////////////////////////////////////////////
@@ -366,20 +305,13 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
         isUnlocked(tokenId)
         returns (uint8, uint8)
     {
-        return (
-            upgradeMapping[tokenId].specialType,
-            upgradeMapping[tokenId].specialPoints
-        );
+        return (upgradeMapping[tokenId].specialType, upgradeMapping[tokenId].specialPoints);
     }
 
     ////////////////////////////////////////////////////////////////////D/////////////////////////////////////////////////////////////////////
 
-    function isEmptyStat(StatType memory newStat)  pure private returns (bool) {
-        return
-            newStat.stat1 == 0 &&
-            newStat.stat2 == 0 &&
-            newStat.specialType == 0 &&
-            newStat.specialPoints == 0;
+    function isEmptyStat(StatType memory newStat) private pure returns (bool) {
+        return newStat.stat1 == 0 && newStat.stat2 == 0 && newStat.specialType == 0 && newStat.specialPoints == 0;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -400,11 +332,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     // @audit why lock check while transferring?
     // @dev coz ccip we need to see if it is locked then nft is on other chain so nft can't be transfer
     //@dev added new modifier
-    function transfer(address to, uint256 tokenId)
-        public
-        isTokenMinted(tokenId)
-        isUnlocked(tokenId)
-    {
+    function transfer(address to, uint256 tokenId) public isTokenMinted(tokenId) isUnlocked(tokenId) {
         require(to != address(0), "ERC721: transfer to the zero address");
         _transfer(_msgSender(), to, tokenId);
     }
@@ -416,11 +344,12 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     // @audit why lock check while transferring?
     // @dev coz ccip we need to see if it is locked then nft is on other chain so nft can't be transfer
     //@dev added new modifier
-    function transferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) public override isTokenMinted(tokenId) isUnlocked(tokenId) {
+    function transferFrom(address from, address to, uint256 tokenId)
+        public
+        override
+        isTokenMinted(tokenId)
+        isUnlocked(tokenId)
+    {
         require(to != address(0), "ERC721: transfer to the zero address");
 
         _transfer(from, to, tokenId);

@@ -9,9 +9,7 @@ contract CCIPReceiver_Unsafe is CCIPReceiver {
 
     constructor(address router) CCIPReceiver(router) {}
 
-    function _ccipReceive(
-        Client.Any2EVMMessage memory message
-    ) internal override {
+    function _ccipReceive(Client.Any2EVMMessage memory message) internal override {
         text = abi.decode(message.data, (string));
     }
 }

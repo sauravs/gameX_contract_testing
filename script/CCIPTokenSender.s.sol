@@ -19,10 +19,7 @@ contract DeployCCIPTokenSender is Script {
             fujiRouter
         );
 
-        console.log(
-            "CCIPTokenSender deployed to ",
-            address(sender)
-        );
+        console.log("CCIPTokenSender deployed to ", address(sender));
 
         vm.stopBroadcast();
     }

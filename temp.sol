@@ -3,39 +3,62 @@ pragma solidity ^0.8.0;
 
 import "ds-test/test.sol";
 import "../RPGItemNFT.sol";
-import "../mocks/MockERC721Receiver.sol";
+import {CheatCodes} from "forge-std/CheatCodes.sol";
 
 contract RPGItemNFTTest is DSTest {
+    CheatCodes cheats = CheatCodes(HEVM_ADDRESS);
     RPGItemNFT private rpgItemNFT;
+    address private owner;
+    address private nonOwner;
 
     function setUp() public {
+        owner = address(1);
+        nonOwner = address(2);
+        cheats.prank(owner);
         rpgItemNFT = new RPGItemNFT();
     }
 
-    function testConstructor() public {
-        // Test statLabels
-        (string memory label1, string memory label2) = rpgItemNFT.statLabels();
-        assertEq(label1, "l1");
-        assertEq(label2, "l2");
+    function testChangeCCIP() public {
+        address newCCIPHandler = address(3);
 
-        // Test itemType
-        assertEq(rpgItemNFT.itemType(), "weapon");
+        // Test as owner
+        cheats.prank(owner);
+        rpgItemNFT.changeCCIP(newCCIPHandler);
+        assertEq(rpgItemNFT._ccipHandler(), newCCIPHandler);
 
-        // Test svgColors
-        // Note: There's no direct way to test private arrays' length or content in Solidity
-        // This part would ideally require internal access or a getter function to verify
-
-        // Test colorRanges
-        // Similar to svgColors, testing this would require internal access or a getter function
-
-        // Test _ccipHandler
-        assertEq(rpgItemNFT._ccipHandler(), 0xa1293A8bFf9323aAd0419E46Dd9846Cc7363D44b);
-
-        // Test mintPrice
-        assertEq(rpgItemNFT.mintPrice(), 10000000000000000);
-
-        // Test _parentChainId
-        // Note: There's no direct way to test private variables in Solidity
-        // This part would ideally require internal access or a getter function to verify
+        // Test as non-owner, should revert
+        cheats.prank(nonOwner);
+        cheats.expectRevert("Ownable: caller is not the owner");
+        rpgItemNFT.changeCCIP(newCCIPHandler);
     }
+
+    function testSetMintPrice() public {
+        uint256 newMintPrice = 20000000000000000; // 0.02 ether
+
+        // Test as owner
+        cheats.prank(owner);
+        rpgItemNFT.setMintPrice(newMintPrice);
+        assertEq(rpgItemNFT.mintPrice(), newMintPrice);
+
+        // Test setting to an invalid price, should revert
+        cheats.prank(owner);
+        cheats.expectRevert(bytes("invalid price"));
+        rpgItemNFT.setMintPrice(type(uint256).max);
+
+        // Test as non-owner, should revert
+        cheats.prank(nonOwner);
+        cheats.expectRevert("Ownable: caller is not the owner");
+        rpgItemNFT.setMintPrice(newMintPrice);
+    }
+}
+
+function testSetMintPrice() public {
+    uint256 newMintPrice = 2 ether;
+
+    // Ensure contractOwner is the owner
+    // If there's a need to set or confirm ownership, do it here
+
+    vm.prank(contractOwner); // Prank as the owner
+    rpg.setMintPrice(newMintPrice); // Attempt to set the new mint price
+    assertEq(rpg.mintPrice(), newMintPrice); // Assert the mint price was successfully updated
 }
