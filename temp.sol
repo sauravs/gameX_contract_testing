@@ -1,28 +1,41 @@
-import "ds-test/test.sol";
-import "./RPG.sol";
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 
-contract RPGTest is DSTest {
-    RPG rpg;
-    address constant testAddress = 0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2; // Replace with a valid address
+import "ds-test/test.sol";
+import "../RPGItemNFT.sol";
+import "../mocks/MockERC721Receiver.sol";
+
+contract RPGItemNFTTest is DSTest {
+    RPGItemNFT private rpgItemNFT;
 
     function setUp() public {
-        rpg = new RPG();
+        rpgItemNFT = new RPGItemNFT();
     }
 
-    function testUpdateStats() public {
-        uint256 tokenId = 0; // Assuming the first minted token has an ID of 0
-        uint8 stat1 = 10;
-        uint8 stat2 = 20;
-        uint8 specialType = 1;
-        uint8 specialPoints = 5;
+    function testConstructor() public {
+        // Test statLabels
+        (string memory label1, string memory label2) = rpgItemNFT.statLabels();
+        assertEq(label1, "l1");
+        assertEq(label2, "l2");
 
-        bool result = rpg.updateStats(tokenId, testAddress, stat1, stat2, specialType, specialPoints);
-        assertTrue(result, "updateStats did not return true");
+        // Test itemType
+        assertEq(rpgItemNFT.itemType(), "weapon");
 
-        // Assuming you have getter functions for the stats
-        assertEq(rpg.getStat1(tokenId), stat1, "Stat1 was not updated correctly");
-        assertEq(rpg.getStat2(tokenId), stat2, "Stat2 was not updated correctly");
-        assertEq(rpg.getSpecialType(tokenId), specialType, "SpecialType was not updated correctly");
-        assertEq(rpg.getSpecialPoints(tokenId), specialPoints, "SpecialPoints was not updated correctly");
+        // Test svgColors
+        // Note: There's no direct way to test private arrays' length or content in Solidity
+        // This part would ideally require internal access or a getter function to verify
+
+        // Test colorRanges
+        // Similar to svgColors, testing this would require internal access or a getter function
+
+        // Test _ccipHandler
+        assertEq(rpgItemNFT._ccipHandler(), 0xa1293A8bFf9323aAd0419E46Dd9846Cc7363D44b);
+
+        // Test mintPrice
+        assertEq(rpgItemNFT.mintPrice(), 10000000000000000);
+
+        // Test _parentChainId
+        // Note: There's no direct way to test private variables in Solidity
+        // This part would ideally require internal access or a getter function to verify
     }
 }

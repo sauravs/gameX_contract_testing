@@ -59,17 +59,6 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     }
 
     constructor()
-        // string memory itemType__,
-        // string memory tokenName__,
-        // string memory tokenSymbol__,
-        // string[2] memory labels__, // labels is name of statstype //@audit -> labels 0 ,1,2 3 labels?
-        // uint8[] memory baseStat__,
-        // address initialOwner__,
-        // string[] memory svgColors__, // svgColors   0-10 : #EFFF
-        // uint8[] memory colorRanges__, // colorRanges : 0-10-20-30
-        // address ccipHandler,
-        // uint256 mintPrice__,
-        // uint256 parentChainId__
         ERC721("Sword", "SW")
         Ownable(0xa1293A8bFf9323aAd0419E46Dd9846Cc7363D44b)
     {
