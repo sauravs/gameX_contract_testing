@@ -51,19 +51,19 @@ contract GameXTest is Test {
         assertEq(rpg.mintPrice(), 10000000000000000);
     }
 
-    //  function testChangeCCIP() public {
-    //     address newCCIPHandler = address(3);
+     function testChangeCCIP() public {
+         
+        address newCCIPHandler = 0xA2293A8bFf9323AAd0419E46Dd9846Cc7363D44c;
+    
+        vm.prank(contract_owner);
+        rpg.changeCCIP(newCCIPHandler);
+        assertEq(rpg._ccipHandler(), newCCIPHandler);
 
-    //     // Test as owner
-    //     cheats.prank(owner);
-    //     rpgItemNFT.changeCCIP(newCCIPHandler);
-    //     assertEq(rpgItemNFT._ccipHandler(), newCCIPHandler);
-
-    //     // Test as non-owner, should revert
-    //     cheats.prank(nonOwner);
-    //     cheats.expectRevert("Ownable: caller is not the owner");
-    //     rpgItemNFT.changeCCIP(newCCIPHandler);
-    // }
+        // Test as non-owner, should revert
+         vm.prank(nonOwner);
+         vm.expectRevert();
+         rpg.changeCCIP(newCCIPHandler);
+     }
 
     function testSetMintPrice() public {
         
@@ -76,7 +76,6 @@ contract GameXTest is Test {
         vm.prank(contract_owner);
         rpg.setMintPrice(newMintPrice);
         assertEq(rpg.mintPrice(), newMintPrice);
-
 
         // Test as non-owner, should revert
         vm.prank(nonOwner);
