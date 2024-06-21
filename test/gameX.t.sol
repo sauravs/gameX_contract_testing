@@ -80,12 +80,9 @@ contract GameXTest is Test {
         rpg.setMintPrice(newMintPrice);
     }
 
-
     function testMint() public {
-
-
-         uint256 mintPrice = rpg.mintPrice();
-         uint256 tokenId = 0;
+        uint256 mintPrice = rpg.mintPrice();
+        uint256 tokenId = 0;
         assertEq(mintPrice, 10000000000000000, "Incorrect Mint Price");
 
         vm.deal(minterA, 100 ether);
@@ -94,10 +91,9 @@ contract GameXTest is Test {
 
         address newOwner = rpg.ownerOf(tokenId);
         assertEq(newOwner, minterA, "Token was not minted correctly");
-
     }
 
-function testTransfer() public {
+    function testTransfer() public {
         uint256 tokenId = 0;
         uint256 initialMintPrice = rpg.mintPrice();
         vm.deal(minterA, 100 ether);
@@ -119,17 +115,17 @@ function testTransfer() public {
         // Revert if transfer to self
         vm.prank(minterA);
         vm.expectRevert();
-        rpg.transfer(minterA, tokenId);   
+        rpg.transfer(minterA, tokenId);
 
         // Revert if token is not minted
         vm.prank(minterA);
         vm.expectRevert(bytes("Token is not Minted"));
-        rpg.transfer(NFTRecevier, 1); 
+        rpg.transfer(NFTRecevier, 1);
 
         //Revert if  "Token is locked"
 
-       address ccipRouter = rpg._ccipHandler();
-       console.log("ccipRouter", ccipRouter);
+        address ccipRouter = rpg._ccipHandler();
+        console.log("ccipRouter", ccipRouter);
 
         // Lock the token by setting a future unlock time
         uint256 unlockTime = block.timestamp + 2 hours;
@@ -137,49 +133,55 @@ function testTransfer() public {
         rpg.setTokenLockStatus(tokenId, unlockTime);
 
         // Attempt to access a function protected by the `isUnlocked` modifier before unlock time
-        
-        vm.warp(block.timestamp + 1 hours);  // Warp halfway to the unlock time
 
+        vm.warp(block.timestamp + 1 hours); // Warp halfway to the unlock time
 
         vm.prank(minterA);
         vm.expectRevert(bytes("Token is locked"));
         rpg.transfer(NFTRecevier, tokenId);
-
     }
 
+    function testSetSign() public {
+        string memory newSign = "GameXSignature";
 
-//     function testTransferFrom() public {
-//           uint256 tokenId = 0;
-//         uint256 initialMintPrice = rpg.mintPrice();
-//         vm.deal(minterA, 100 ether);
-//         vm.prank(minterA);
-//         rpg.mint{value: initialMintPrice}();
-//         address owner = rpg.ownerOf(tokenId);
-//         assertEq(owner, minterA, "Token was not minted correctly");
-//         vm.prank(minterA);
-//            rpg.transferFrom(minterA, NFTRecevier, tokenId);
-//               address newowner = rpg.ownerOf(tokenId);
-//         assertEq(NFTRecevier, newowner);
-//     }
+        vm.prank(contract_owner);
+        rpg.setSign(newSign);
 
+        assertEq(rpg._sign(), newSign);
+    }
 
+    function testGetTokenStats() public {
+        // Mint a nft token
 
+        uint256 mintPrice = rpg.mintPrice();
+        uint256 tokenId = 0;
+        assertEq(mintPrice, 10000000000000000, "Incorrect Mint Price");
 
+        vm.deal(minterA, 100 ether);
+        vm.prank(minterA);
+        rpg.mint{value: mintPrice}();
 
+        address newOwner = rpg.ownerOf(tokenId);
+        assertEq(newOwner, minterA, "Token was not minted correctly");
 
+        // Expected stats based on the base stats and any upgrades applied
+        // Assuming no upgrades are applied, so expected stats are just the base stats
+        uint8 expectedStat1 = 10; // baseStat.stat1
+        uint8 expectedStat2 = 20; // baseStat.stat2
+        uint8 expectedSpecialType = 30; // baseStat.specialType
+        uint8 expectedSpecialPoints = 40; // baseStat.specialPoints
 
+        // Call getTokenStats and verify the returned values match the expected stats
+        (uint8 stat1, uint8 stat2, uint8 specialType, uint8 specialPoints) = rpg.getTokenStats(tokenId);
+        assertEq(stat1, expectedStat1, "Stat1 does not match expected value");
+        assertEq(stat2, expectedStat2, "Stat2 does not match expected value");
+        assertEq(specialType, expectedSpecialType, "SpecialType does not match expected value");
+        assertEq(specialPoints, expectedSpecialPoints, "SpecialPoints does not match expected value");
+    }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+    function testGetTokenStatsRevertsForUnmintedToken() public {
+        uint256 unmintedTokenId = 2; // assuming tokenId 2 was not minted in setUp
+        vm.expectRevert("Token is not Minted");
+        rpg.getTokenStats(unmintedTokenId);
+    }
 }

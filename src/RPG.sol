@@ -21,7 +21,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     string[2] public statLabels;
     string[] private svgColors;
     string public itemType;
-    string private _sign; //@dev sign is signature look at setter fun for more info
+    string public _sign; //@dev sign is signature look at setter fun for more info purpose //@auditV2 : temprory updating to public for test purpose
     string public itemImage__ =
         "https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Bitcoin_logo.jpg/640px-Bitcoin_logo.jpg";
     string public lockedItemImage =
@@ -78,11 +78,12 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
         emit Transfer(msg.sender, msg.value);
     }
 
-    function lockStatus(uint256 tokenId) public view returns (bool) { //@auditV2: only via trnsferring the NFT
-        return (tokenLockedTill[tokenId] > block.timestamp);   //@auditV2 :when token is just minted by rpg contract,what would be its lock status ->by this logic it should be false
+    function lockStatus(uint256 tokenId) public view returns (bool) {
+        //@auditV2: only via trnsferring the NFT
+        return (tokenLockedTill[tokenId] > block.timestamp); //@auditV2 :when token is just minted by rpg contract,what would be its lock status ->by this logic it should be false
     }
 
-    function setTokenLockStatus(                     //@auditV2 : how much unlocktime is getting set by ccipRouter
+    function setTokenLockStatus( //@auditV2 : how much unlocktime is getting set by ccipRouter
         uint256 tokenId,
         uint256 unlockTime //CCIP use
     ) public onlyCCIPRouter {
@@ -90,6 +91,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     }
 
     function setSign(string memory sign) external {
+        //@auditV2 : should be onlyOwner
         // This function sets the signature used to verify that the NFT was minted by Game-X.
         // Once the contract is deployed, this signature is set and is used for cross-verification.
         // When checking the minted NFT, this signature is compared against the signature stored in the NFT metadata
@@ -113,6 +115,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     function getTokenStats(
         uint256 tokenId //@audit what is the purpose of this,confusion with getStats()
     ) public view isTokenMinted(tokenId) returns (uint8, uint8, uint8, uint8) {
+        //@auditV2 : if it is ccip related then only ccipRouter should be able to call this
         StatType memory stats = upgradeMapping[tokenId];
         return (
             stats.stat1 + baseStat.stat1,
@@ -232,7 +235,8 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     }
 
     // @audit power level -> 0 ,1 ,3  // basically it shows value of that asset in marketplace
-    function powerLevel__(uint256 tokenId) private view returns (uint256) {        //@auditV2 : should better be made public
+    function powerLevel__(uint256 tokenId) private view returns (uint256) {
+        //@auditV2 : should better be made public
         StatType memory previousStat = upgradeMapping[tokenId];
         return ((previousStat.stat1 + baseStat.stat1) + (previousStat.stat2 + baseStat.stat2)) / 2;
     }
@@ -329,10 +333,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     //     return string(result);
     // }
 
-
- 
-
-     // @audit why lock check while transferring?
+    // @audit why lock check while transferring?
     // @dev coz ccip we need to see if it is locked then nft is on other chain so nft can't be transfer
     //@dev added new modifier
     function transfer(address to, uint256 tokenId) public isTokenMinted(tokenId) isUnlocked(tokenId) {
@@ -347,15 +348,13 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     // @audit why lock check while transferring?
     // @dev coz ccip we need to see if it is locked then nft is on other chain so nft can't be transfer
     //@dev added new modifier
-    function transferFrom(          //@auditV2: ccip related  
-        address from,
-        address to,
-        uint256 tokenId
-    ) public override  onlyCCIPRouter {
+    function transferFrom( //@auditV2: ccip related
+    address from, address to, uint256 tokenId)
+        public
+        override
+        onlyCCIPRouter
+    {
         require(to != address(0), "ERC721: transfer to the zero address");
         _transfer(from, to, tokenId);
     }
-
-    
-    
 }
