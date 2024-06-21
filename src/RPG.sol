@@ -319,19 +319,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // CCIP   // @audit -> not using in this code
-    // function statToString(StatType memory stat)
-    //     internal
-    //     pure
-    //     returns (string memory)
-    // {
-    //     bytes memory result = new bytes(4);
-    //     result[0] = bytes1(stat.stat1);
-    //     result[1] = bytes1(stat.stat2);
-    //     result[2] = bytes1(stat.specialType);
-    //     result[3] = bytes1(stat.specialPoints);
-    //     return string(result);
-    // }
+   
 
     // @audit why lock check while transferring?
     // @dev coz ccip we need to see if it is locked then nft is on other chain so nft can't be transfer

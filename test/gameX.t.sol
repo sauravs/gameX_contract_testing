@@ -351,6 +351,60 @@ contract GameXTest is Test {
     }
 
 
+     function testGetSpecialForMintedAndUnlockedToken_Fail() public {
+         // Mint a nft token
+        uint256 mintPrice = rpg.mintPrice();
+        uint256 tokenId = 0;
+        assertEq(mintPrice, 10000000000000000, "Incorrect Mint Price");
+
+        vm.deal(minterA, 100 ether);
+        vm.prank(minterA);
+        rpg.mint{value: mintPrice}();
+
+        address newOwner = rpg.ownerOf(tokenId);
+        assertEq(newOwner, minterA, "Token was not minted correctly");
+
+        // Test retrieval of special stats
+        (uint8 specialType, uint8 specialPoints) = rpg.getSpecial(tokenId);
+        // assertEq(specialType, 30, "Incorrect specialType value");
+        // assertEq(specialPoints, 40, "Incorrect specialPoints value");
+    }
+
+    function testGetSpecialForLockedToken() public {
+        // Mint a nft token
+        uint256 mintPrice = rpg.mintPrice();
+        uint256 tokenId = 0;
+        assertEq(mintPrice, 10000000000000000, "Incorrect Mint Price");
+
+        vm.deal(minterA, 100 ether);
+        vm.prank(minterA);
+        rpg.mint{value: mintPrice}();
+
+        address newOwner = rpg.ownerOf(tokenId);
+        assertEq(newOwner, minterA, "Token was not minted correctly");
+
+       address ccipRouter = rpg._ccipHandler();
+        console.log("ccipRouter", ccipRouter);
+
+        // Lock the token by setting a future unlock time
+        uint256 unlockTime = block.timestamp + 2 hours;
+        vm.prank(ccipRouter);
+        rpg.setTokenLockStatus(tokenId, unlockTime);
+
+        vm.expectRevert(bytes("Token is locked"));
+
+        rpg.getSpecial(tokenId);
+    }
+
+    function testGetSpecialForUnmintedToken() public {
+        uint256 tokenId = 999; // assuming this token is not minted
+
+        vm.expectRevert(bytes("Token is not Minted"));
+        rpg.getSpecial(tokenId);
+    }
+
+
+
 
 
 
