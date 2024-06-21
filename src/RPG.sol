@@ -130,7 +130,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     // @audit : function updateStats() -> anyone who knows the token id would be able to update the stats of the token ,not desirable
     // @dev added modifier so only ccip handler can use this now
 
-    function updateStats(
+    function updateStats(     //@auditV2 : why updatestats are only related to cciprouter?can asset owner not update the stats sitting on single chain and withhout using ccip??
         //ccip related
         uint256 tokenId,
         address newOwner,

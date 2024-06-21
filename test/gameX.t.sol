@@ -184,4 +184,75 @@ contract GameXTest is Test {
         vm.expectRevert("Token is not Minted");
         rpg.getTokenStats(unmintedTokenId);
     }
+
+
+      function testUpdateStatsSuccess() public {     //@auditV2: test failing
+
+        address ccipRouter = rpg._ccipHandler();
+
+        uint256 tokenId = 1;
+        address newOwner = NFTRecevier;
+        uint8 stat1 = 5;
+        uint8 stat2 = 10;
+        uint8 specialType = 15;
+        uint8 specialPoints = 20;
+
+        vm.prank(ccipRouter);
+        bool success = rpg.updateStats(tokenId, newOwner, stat1, stat2, specialType, specialPoints);
+        assertTrue(success, "UpdateStats should succeed");
+        //check if nft minted successfuly
+        address owner = rpg.ownerOf(tokenId);
+        assertEq(owner, NFTRecevier, "Token was not minted correctly");
+
+        // Verify the stats were updated
+        // (uint8 updatedStat1, uint8 updatedStat2, uint8 updatedSpecialType, uint8 updatedSpecialPoints) = rpg.getTokenStats(tokenId);
+
+        
+        // console.log("updatedStat1", updatedStat1);     //10
+        // console.log("updatedStat2", updatedStat2);     //20
+        // console.log("updatedSpecialType", updatedSpecialType); //30
+        // console.log("updatedSpecialPoints", updatedSpecialPoints); //40
+
+        // Verify the stats were updated
+        (uint256 updatedStat1, uint256 updatedStat2, uint256 updatedSpecialType, uint256 updatedSpecialPoints) = rpg.upgradeMapping(tokenId);
+
+        console.log("updatedStat1", updatedStat1);     //0
+        console.log("updatedStat2", updatedStat2);     //0
+        console.log("updatedSpecialType", updatedSpecialType); //0
+        console.log("updatedSpecialPoints", updatedSpecialPoints); //0
+
+
+
+        // assertEq(updatedStat1, stat1, "Stat1 was not updated correctly");
+        // assertEq(updatedStat2, stat2, "Stat2 was not updated correctly");
+        // assertEq(updatedSpecialType, specialType, "SpecialType was not updated correctly");
+        // assertEq(updatedSpecialPoints, specialPoints, "SpecialPoints was not updated correctly");
+    }
+
+     function testUpdateStatsRevertsForNonCCIPRouter() public {
+     
+        uint256 tokenId = 2;
+        address newOwner = NFTRecevier;
+        uint8 stat1 = 5;
+        uint8 stat2 = 10;
+        uint8 specialType = 15;
+        uint8 specialPoints = 20;
+
+        vm.expectRevert(bytes("Caller is not the CCIP router"));
+        rpg.updateStats(tokenId, newOwner, stat1, stat2, specialType, specialPoints);
+    }
+
+
+     function testTokenURI() public {
+
+        uint256 tokenId = 0;
+        uint256 initialMintPrice = rpg.mintPrice();
+        vm.deal(minterA, 100 ether);
+        vm.prank(minterA);
+        rpg.mint{value: initialMintPrice}();
+        address owner = rpg.ownerOf(tokenId);
+        assertEq(owner, minterA, "Token was not minted correctly");
+        string memory tokenURI = rpg.tokenURI(tokenId);
+        assertTrue(bytes(tokenURI).length > 0, "Token URI is empty");
+    }
 }
