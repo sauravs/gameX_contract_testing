@@ -318,6 +318,38 @@ contract GameXTest is Test {
         assertEq(stat2, 20, "Incorrect stat2 value"); // 20 (base) + 0 (upgrade)
     }
 
+     function testGetStatForUnmintedToken() public {
+        uint256 tokenId = 999; // assuming this token is not minted
+
+        vm.expectRevert(bytes("Token is not Minted"));
+        rpg.getStat("l1", tokenId);
+    }
+
+      function testGetStatForLockedToken() public {
+         // Mint a nft token
+        uint256 mintPrice = rpg.mintPrice();
+        uint256 tokenId = 0;
+        assertEq(mintPrice, 10000000000000000, "Incorrect Mint Price");
+
+        vm.deal(minterA, 100 ether);
+        vm.prank(minterA);
+        rpg.mint{value: mintPrice}();
+
+        address newOwner = rpg.ownerOf(tokenId);
+        assertEq(newOwner, minterA, "Token was not minted correctly");
+
+       address ccipRouter = rpg._ccipHandler();
+        console.log("ccipRouter", ccipRouter);
+
+        // Lock the token by setting a future unlock time
+        uint256 unlockTime = block.timestamp + 2 hours;
+        vm.prank(ccipRouter);
+        rpg.setTokenLockStatus(tokenId, unlockTime);
+
+        vm.expectRevert(bytes("Token is locked"));
+        rpg.getStat("l1", tokenId);
+    }
+
 
 
 

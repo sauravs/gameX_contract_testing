@@ -285,7 +285,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
 
     //@audit when no tokenID minted  it should return zero
     // @dev it will work for user defined stat only i.e first 2
-    function getStat(string memory statLabel, uint256 tokenId)
+    function getStat(string memory statLabel, uint256 tokenId)     //@auditV2 check for invalid label
         public
         view
         isTokenMinted(tokenId)
