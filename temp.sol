@@ -8,45 +8,46 @@ import {CheatCodes} from "forge-std/CheatCodes.sol";
 contract RPGTest is DSTest {
     CheatCodes cheats = CheatCodes(HEVM_ADDRESS);
     RPG private rpg;
-    address private ccipRouter = address(0x1); // Mock CCIP router address
 
     function setUp() public {
-        cheats.prank(ccipRouter);
         rpg = new RPG();
-        cheats.startPrank(ccipRouter);
-        rpg.setCCIPHandler(ccipRouter); // Assuming there's a function to set the CCIP handler
-        cheats.stopPrank();
+        // Mint a token for testing; assuming mint function exists and is accessible for testing
+        // rpg.mint(address(this), 1); // Uncomment if minting is needed
     }
 
-    function testUpdateStatsSuccess() public {
+    function testGetStatForMintedAndUnlockedToken() public {
         uint256 tokenId = 1;
-        address newOwner = address(this);
-        uint8 stat1 = 5;
-        uint8 stat2 = 10;
-        uint8 specialType = 15;
-        uint8 specialPoints = 20;
+        // Assuming a function to set upgrade stats exists
+        // rpg.setUpgradeStats(tokenId, 5, 5, 0, 0); // Example upgrade stats; adjust based on actual contract
 
-        cheats.prank(ccipRouter);
-        bool success = rpg.updateStats(tokenId, newOwner, stat1, stat2, specialType, specialPoints);
-        assertTrue(success, "UpdateStats should succeed");
+        // Test retrieval of stat1
+        uint8 stat1 = rpg.getStat("l1", tokenId);
+        assertEq(stat1, 15, "Incorrect stat1 value"); // 10 (base) + 5 (upgrade)
 
-        // Verify the stats were updated
-        (uint8 updatedStat1, uint8 updatedStat2, uint8 updatedSpecialType, uint8 updatedSpecialPoints) = rpg.upgradeMapping(tokenId);
-        assertEq(updatedStat1, stat1, "Stat1 was not updated correctly");
-        assertEq(updatedStat2, stat2, "Stat2 was not updated correctly");
-        assertEq(updatedSpecialType, specialType, "SpecialType was not updated correctly");
-        assertEq(updatedSpecialPoints, specialPoints, "SpecialPoints was not updated correctly");
+        // Test retrieval of stat2
+        uint8 stat2 = rpg.getStat("l2", tokenId);
+        assertEq(stat2, 25, "Incorrect stat2 value"); // 20 (base) + 5 (upgrade)
     }
 
-    function testUpdateStatsRevertsForNonCCIPRouter() public {
+    function testGetStatForLockedToken() public {
         uint256 tokenId = 2;
-        address newOwner = address(this);
-        uint8 stat1 = 5;
-        uint8 stat2 = 10;
-        uint8 specialType = 15;
-        uint8 specialPoints = 20;
+        // Lock the token; assuming a function exists to lock the token
+        // rpg.lockToken(tokenId, futureTimestamp); // Lock the token; adjust based on actual contract
 
-        cheats.expectRevert("Caller is not the CCIP router");
-        rpg.updateStats(tokenId, newOwner, stat1, stat2, specialType, specialPoints);
+        cheats.expectRevert("Token is locked");
+        rpg.getStat("l1", tokenId);
+    }
+
+    function testGetStatForUnmintedToken() public {
+        uint256 tokenId = 999; // Assuming this token is not minted
+
+        cheats.expectRevert("Token is not Minted");
+        rpg.getStat("l1", tokenId);
+    }
+
+    function testGetStatWithInvalidStatLabel() public {
+        uint256 tokenId = 1;
+        uint8 stat = rpg.getStat("invalidLabel", tokenId);
+        assertEq(stat, 0, "Invalid stat label should return 0");
     }
 }

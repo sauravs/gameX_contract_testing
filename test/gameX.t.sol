@@ -18,12 +18,15 @@ contract GameXTest is Test {
     RPGItemNFT public rpg_receiver; // rpg receiver contract
 
     address minterA;
+        address minterB;
+
     address NFTRecevier;
     address contract_owner;
     address nonOwner;
 
     function setUp() public {
         minterA = makeAddr("minterA");
+        minterB = makeAddr("minterB");
         NFTRecevier = makeAddr("NFTRecevier");
         nonOwner = makeAddr("nonOwner");
         contract_owner = 0xB1293a8BFf9323AaD0419e46dd9846cC7363d44B;
@@ -255,4 +258,70 @@ contract GameXTest is Test {
         string memory tokenURI = rpg.tokenURI(tokenId);
         assertTrue(bytes(tokenURI).length > 0, "Token URI is empty");
     }
+
+
+ function testPowerLevelWithoutUpgrades_pvt() public {
+     // Mint a nft token
+ uint256 mintPrice = rpg.mintPrice();
+        uint256 tokenId = 0;
+        assertEq(mintPrice, 10000000000000000, "Incorrect Mint Price");
+
+        vm.deal(minterA, 100 ether);
+        vm.prank(minterA);
+        rpg.mint{value: mintPrice}();
+
+        address newOwner = rpg.ownerOf(tokenId);
+        assertEq(newOwner, minterA, "Token was not minted correctly");
+
+        // Base stats are assumed to be set in the RPG constructor
+        uint256 expectedPowerLevel = ((0 + 10) + (0 + 20)) / 2; //  calculation based on given base stats
+
+        uint256 powerLevel = rpg.powerLevel__(tokenId);
+        assertEq(powerLevel, expectedPowerLevel, "Power level calculation without upgrades is incorrect");
+    }
+
+    // function testPowerLevelWithUpgrades() public {
+    //     uint256 tokenId = 2;
+    //     // Assuming a function to mint or create a token exists
+    //     // rpg.mint(address(this), tokenId); // Uncomment if minting is needed
+
+    //     // Manually setting upgrade stats for the token
+    //     StatType memory upgradeStats = StatType(5, 5, 0, 0); // Example upgrade stats
+    //     rpg.upgradeMapping[tokenId] = upgradeStats; // This line is pseudo-code; actual implementation may vary
+
+    //     uint256 expectedPowerLevel = ((10 + 5) + (20 + 5)) / 2; // Example calculation with upgrades
+
+    //     uint256 powerLevel = rpg.powerLevel__(tokenId);
+    //     assertEq(powerLevel, expectedPowerLevel, "Power level calculation with upgrades is incorrect");
+   // }
+
+   function testGetStatForMintedAndUnlockedToken() public {
+         
+         // Mint a nft token
+        uint256 mintPrice = rpg.mintPrice();
+        uint256 tokenId = 0;
+        assertEq(mintPrice, 10000000000000000, "Incorrect Mint Price");
+
+        vm.deal(minterA, 100 ether);
+        vm.prank(minterA);
+        rpg.mint{value: mintPrice}();
+
+        address newOwner = rpg.ownerOf(tokenId);
+        assertEq(newOwner, minterA, "Token was not minted correctly");
+
+        // Test retrieval of stat1
+        uint8 stat1 = rpg.getStat("l1", tokenId);
+        assertEq(stat1, 10, "Incorrect stat1 value"); // 10 (base) + 0 (upgrade)
+
+        // Test retrieval of stat2
+        uint8 stat2 = rpg.getStat("l2", tokenId);
+        assertEq(stat2, 20, "Incorrect stat2 value"); // 20 (base) + 0 (upgrade)
+    }
+
+
+
+
+
+
+
 }

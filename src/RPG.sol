@@ -235,8 +235,8 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     }
 
     // @audit power level -> 0 ,1 ,3  // basically it shows value of that asset in marketplace
-    function powerLevel__(uint256 tokenId) private view returns (uint256) {
-        //@auditV2 : should better be made public
+    function powerLevel__(uint256 tokenId) public view returns (uint256) {
+        //@auditV2 : making it public temporarilty for testing purpose
         StatType memory previousStat = upgradeMapping[tokenId];
         return ((previousStat.stat1 + baseStat.stat1) + (previousStat.stat2 + baseStat.stat2)) / 2;
     }
