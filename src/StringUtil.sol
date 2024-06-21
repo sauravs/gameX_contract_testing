@@ -30,8 +30,7 @@ library StringUtil {
 
         assert(_valueBytes.length > 0);
 
-        string memory _tmpValue = new string(_baseBytes.length +
-            _valueBytes.length);
+        string memory _tmpValue = new string(_baseBytes.length + _valueBytes.length);
         bytes memory _newValue = bytes(_tmpValue);
 
         uint256 i;
@@ -143,7 +142,7 @@ library StringUtil {
 
         assert(uint256(_offset + _length) <= _baseBytes.length);
 
-        string memory _tmp = new string(uint(_length));
+        string memory _tmp = new string(uint256(_length));
         bytes memory _tmpBytes = bytes(_tmp);
 
         uint256 j = 0;
@@ -193,7 +192,7 @@ library StringUtil {
                 _limit = int256(_baseBytes.length);
             }
 
-            string memory _tmp = new string(uint(_limit) - _offset);
+            string memory _tmp = new string(uint256(_limit) - _offset);
             bytes memory _tmpBytes = bytes(_tmp);
 
             uint256 j = 0;

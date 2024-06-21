@@ -78,11 +78,11 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
         emit Transfer(msg.sender, msg.value);
     }
 
-    function lockStatus(uint256 tokenId) public view isTokenMinted(tokenId) returns (bool) {
-        return (tokenLockedTill[tokenId] > block.timestamp);
+    function lockStatus(uint256 tokenId) public view returns (bool) { //@auditV2: only via trnsferring the NFT
+        return (tokenLockedTill[tokenId] > block.timestamp);   //@auditV2 :when token is just minted by rpg contract,what would be its lock status ->by this logic it should be false
     }
 
-    function setTokenLockStatus(
+    function setTokenLockStatus(                     //@auditV2 : how much unlocktime is getting set by ccipRouter
         uint256 tokenId,
         uint256 unlockTime //CCIP use
     ) public onlyCCIPRouter {
@@ -104,7 +104,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
 
     function setMintPrice(uint256 _mintPrice) external onlyOwner {
         //@dev added modifier
-        require(_mintPrice >= 0, "invalid price");   //@auditV2 : should be >0 (if zero selling it for free?) ,otherwise we do not require this require statement,anyways it will only take upto unit256.max as a param
+        require(_mintPrice >= 0, "invalid price"); //@auditV2 : should be >0 (if zero selling it for free?) ,otherwise we do not require this require statement,anyways it will only take upto unit256.max as a param
         mintPrice = _mintPrice;
     }
 
@@ -152,11 +152,11 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     }
 
     function mint() public payable {
-        // @audit //@dev this is required to maintain chain and sync all the chain nfts
-        require(
-            _parentChainId == block.chainid,
-            string(abi.encodePacked("Mint not allowed, You can mint on ChainId : ", _parentChainId.toString()))
-        );
+        // @audit //@dev this is required to maintain chain and sync all the chain nfts  //@auditV2 :commenting the chain id require check for test purpose..uncomment it later
+        // require(
+        //     _parentChainId == block.chainid,
+        //     string(abi.encodePacked("Mint not allowed, You can mint on ChainId : ", _parentChainId.toString()))
+        // );
         require(msg.value == mintPrice, "Insufficient Ether");
         uint256 tokenId = _nextTokenId++;
         _safeMint(msg.sender, tokenId);
@@ -168,7 +168,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
         return _ownerOf(tokenId);
     }
 
-    function tokenURI(uint256 tokenId) public view override (ERC721) isTokenMinted(tokenId) returns (string memory) {
+    function tokenURI(uint256 tokenId) public view override(ERC721) isTokenMinted(tokenId) returns (string memory) {
         bool tokenLockStatus = lockStatus(tokenId);
         string memory imgSVG = generateSVG(
             tokenLockStatus ? "#808080" : powerLevelColor(tokenId),
@@ -232,7 +232,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     }
 
     // @audit power level -> 0 ,1 ,3  // basically it shows value of that asset in marketplace
-    function powerLevel__(uint256 tokenId) private view returns (uint256) {
+    function powerLevel__(uint256 tokenId) private view returns (uint256) {        //@auditV2 : should better be made public
         StatType memory previousStat = upgradeMapping[tokenId];
         return ((previousStat.stat1 + baseStat.stat1) + (previousStat.stat2 + baseStat.stat2)) / 2;
     }
@@ -329,7 +329,10 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     //     return string(result);
     // }
 
-    // @audit why lock check while transferring?
+
+ 
+
+     // @audit why lock check while transferring?
     // @dev coz ccip we need to see if it is locked then nft is on other chain so nft can't be transfer
     //@dev added new modifier
     function transfer(address to, uint256 tokenId) public isTokenMinted(tokenId) isUnlocked(tokenId) {
@@ -344,14 +347,15 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     // @audit why lock check while transferring?
     // @dev coz ccip we need to see if it is locked then nft is on other chain so nft can't be transfer
     //@dev added new modifier
-    function transferFrom(address from, address to, uint256 tokenId)
-        public
-        override
-        isTokenMinted(tokenId)
-        isUnlocked(tokenId)
-    {
+    function transferFrom(          //@auditV2: ccip related  
+        address from,
+        address to,
+        uint256 tokenId
+    ) public override  onlyCCIPRouter {
         require(to != address(0), "ERC721: transfer to the zero address");
-
         _transfer(from, to, tokenId);
     }
+
+    
+    
 }

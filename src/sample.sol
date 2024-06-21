@@ -30,12 +30,12 @@ contract Messenger is CCIPReceiver, OwnerIsCreator {
     error InvalidReceiverAddress(); // Used when the receiver address is 0.
 
     // Event emitted when a message is sent to another chain.
+    // The chain selector of the destination chain.
+    // The address of the receiver on the destination chain.
+    // The text being sent.
+    // the token address used to pay CCIP fees.
+    // The fees paid for sending the CCIP message.
     event MessageSent( // The unique ID of the CCIP message.
-        // The chain selector of the destination chain.
-        // The address of the receiver on the destination chain.
-        // The text being sent.
-        // the token address used to pay CCIP fees.
-        // The fees paid for sending the CCIP message.
         bytes32 indexed messageId,
         uint64 indexed destinationChainSelector,
         address receiver,
@@ -205,7 +205,7 @@ contract Messenger is CCIPReceiver, OwnerIsCreator {
             any2EvmMessage.sourceChainSelector, // fetch the source chain identifier (aka selector)
             abi.decode(any2EvmMessage.sender, (address)), // abi-decoding of the sender address,
             abi.decode(any2EvmMessage.data, (string))
-            );
+        );
     }
 
     /// @notice Construct a CCIP message.
@@ -227,7 +227,7 @@ contract Messenger is CCIPReceiver, OwnerIsCreator {
             extraArgs: Client._argsToBytes(
                 // Additional arguments, setting gas limit
                 Client.EVMExtraArgsV1({gasLimit: 200_000})
-                ),
+            ),
             // Set the feeToken to a feeTokenAddress, indicating specific asset will be used for fees
             feeToken: _feeTokenAddress
         });

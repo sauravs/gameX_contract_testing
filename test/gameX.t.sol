@@ -31,7 +31,6 @@ contract GameXTest is Test {
         /**
          * RPG NFT CONTRACT RELATED *****************************************************
          */
-
         rpg = new RPGItemNFT();
     }
 
@@ -51,22 +50,20 @@ contract GameXTest is Test {
         assertEq(rpg.mintPrice(), 10000000000000000);
     }
 
-     function testChangeCCIP() public {
-         
+    function testChangeCCIP() public {
         address newCCIPHandler = 0xA2293A8bFf9323AAd0419E46Dd9846Cc7363D44c;
-    
+
         vm.prank(contract_owner);
         rpg.changeCCIP(newCCIPHandler);
         assertEq(rpg._ccipHandler(), newCCIPHandler);
 
         // Test as non-owner, should revert
-         vm.prank(nonOwner);
-         vm.expectRevert();
-         rpg.changeCCIP(newCCIPHandler);
-     }
+        vm.prank(nonOwner);
+        vm.expectRevert();
+        rpg.changeCCIP(newCCIPHandler);
+    }
 
     function testSetMintPrice() public {
-        
         rpg.owner();
         console.log("owner", rpg.owner());
 
@@ -81,6 +78,108 @@ contract GameXTest is Test {
         vm.prank(nonOwner);
         vm.expectRevert();
         rpg.setMintPrice(newMintPrice);
-        
     }
+
+
+    function testMint() public {
+
+
+         uint256 mintPrice = rpg.mintPrice();
+         uint256 tokenId = 0;
+        assertEq(mintPrice, 10000000000000000, "Incorrect Mint Price");
+
+        vm.deal(minterA, 100 ether);
+        vm.prank(minterA);
+        rpg.mint{value: mintPrice}();
+
+        address newOwner = rpg.ownerOf(tokenId);
+        assertEq(newOwner, minterA, "Token was not minted correctly");
+
+    }
+
+function testTransfer() public {
+        uint256 tokenId = 0;
+        uint256 initialMintPrice = rpg.mintPrice();
+        vm.deal(minterA, 100 ether);
+        vm.prank(minterA);
+        rpg.mint{value: initialMintPrice}();
+        address owner = rpg.ownerOf(tokenId);
+        assertEq(owner, minterA, "Token was not minted correctly");
+        vm.prank(minterA);
+        rpg.transfer(NFTRecevier, tokenId);
+        address newowner = rpg.ownerOf(tokenId);
+        assertEq(NFTRecevier, newowner);
+
+        //Revert if transfer to zero address
+
+        vm.prank(minterA);
+        vm.expectRevert();
+        rpg.transfer(address(0), tokenId);
+
+        // Revert if transfer to self
+        vm.prank(minterA);
+        vm.expectRevert();
+        rpg.transfer(minterA, tokenId);   
+
+        // Revert if token is not minted
+        vm.prank(minterA);
+        vm.expectRevert(bytes("Token is not Minted"));
+        rpg.transfer(NFTRecevier, 1); 
+
+        //Revert if  "Token is locked"
+
+       address ccipRouter = rpg._ccipHandler();
+       console.log("ccipRouter", ccipRouter);
+
+        // Lock the token by setting a future unlock time
+        uint256 unlockTime = block.timestamp + 2 hours;
+        vm.prank(ccipRouter);
+        rpg.setTokenLockStatus(tokenId, unlockTime);
+
+        // Attempt to access a function protected by the `isUnlocked` modifier before unlock time
+        
+        vm.warp(block.timestamp + 1 hours);  // Warp halfway to the unlock time
+
+
+        vm.prank(minterA);
+        vm.expectRevert(bytes("Token is locked"));
+        rpg.transfer(NFTRecevier, tokenId);
+
+    }
+
+
+//     function testTransferFrom() public {
+//           uint256 tokenId = 0;
+//         uint256 initialMintPrice = rpg.mintPrice();
+//         vm.deal(minterA, 100 ether);
+//         vm.prank(minterA);
+//         rpg.mint{value: initialMintPrice}();
+//         address owner = rpg.ownerOf(tokenId);
+//         assertEq(owner, minterA, "Token was not minted correctly");
+//         vm.prank(minterA);
+//            rpg.transferFrom(minterA, NFTRecevier, tokenId);
+//               address newowner = rpg.ownerOf(tokenId);
+//         assertEq(NFTRecevier, newowner);
+//     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }

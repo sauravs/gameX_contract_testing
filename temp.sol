@@ -2,63 +2,59 @@
 pragma solidity ^0.8.0;
 
 import "ds-test/test.sol";
-import "../RPGItemNFT.sol";
+import "../RPG.sol";
 import {CheatCodes} from "forge-std/CheatCodes.sol";
 
-contract RPGItemNFTTest is DSTest {
+contract RPGTest is DSTest {
     CheatCodes cheats = CheatCodes(HEVM_ADDRESS);
-    RPGItemNFT private rpgItemNFT;
-    address private owner;
-    address private nonOwner;
+    RPG private rpg;
+    address private ccipRouter;
 
     function setUp() public {
-        owner = address(1);
-        nonOwner = address(2);
-        cheats.prank(owner);
-        rpgItemNFT = new RPGItemNFT();
+        rpg = new RPG();
+        ccipRouter = address(1); // Assuming address(1) is the CCIP Router for this example
+        // Assuming the RPG contract has a function to set the CCIP Router or it's set upon deployment
+        // If there's a function like `setCCIPRouter(address _ccipRouter)`, it should be called here
     }
 
-    function testChangeCCIP() public {
-        address newCCIPHandler = address(3);
+    function testSetTokenLockStatus() public {
+        uint256 tokenId = 1;
+        uint256 unlockTime = block.timestamp + 1 days;
 
-        // Test as owner
-        cheats.prank(owner);
-        rpgItemNFT.changeCCIP(newCCIPHandler);
-        assertEq(rpgItemNFT._ccipHandler(), newCCIPHandler);
+        // Simulate calling from the CCIP Router
+        cheats.prank(ccipRouter);
+        rpg.setTokenLockStatus(tokenId, unlockTime);
 
-        // Test as non-owner, should revert
-        cheats.prank(nonOwner);
-        cheats.expectRevert("Ownable: caller is not the owner");
-        rpgItemNFT.changeCCIP(newCCIPHandler);
+        // Verify the token lock status
+        assertEq(rpg.tokenLockedTill(tokenId), unlockTime);
     }
 
-    function testSetMintPrice() public {
-        uint256 newMintPrice = 20000000000000000; // 0.02 ether
+    function testAccessWithLockedToken() public {
+        uint256 tokenId = 2;
+        uint256 unlockTime = block.timestamp + 1 days;
 
-        // Test as owner
-        cheats.prank(owner);
-        rpgItemNFT.setMintPrice(newMintPrice);
-        assertEq(rpgItemNFT.mintPrice(), newMintPrice);
+        // Lock the token by setting a future unlock time
+        cheats.prank(ccipRouter);
+        rpg.setTokenLockStatus(tokenId, unlockTime);
 
-        // Test setting to an invalid price, should revert
-        cheats.prank(owner);
-        cheats.expectRevert(bytes("invalid price"));
-        rpgItemNFT.setMintPrice(type(uint256).max);
-
-        // Test as non-owner, should revert
-        cheats.prank(nonOwner);
-        cheats.expectRevert("Ownable: caller is not the owner");
-        rpgItemNFT.setMintPrice(newMintPrice);
+        // Attempt to access a function protected by the `isUnlocked` modifier before unlock time
+        cheats.warp(block.timestamp + 12 hours); // Warp halfway to the unlock time
+        cheats.expectRevert("Token is locked");
+        // Call the protected function here, e.g., `rpg.useToken(tokenId);`
     }
-}
 
-function testSetMintPrice() public {
-    uint256 newMintPrice = 2 ether;
+    function testAccessWithUnlockedToken() public {
+        uint256 tokenId = 3;
+        uint256 unlockTime = block.timestamp - 1 days; // Set unlock time in the past
 
-    // Ensure contractOwner is the owner
-    // If there's a need to set or confirm ownership, do it here
+        // Unlock the token by setting a past unlock time
+        cheats.prank(ccipRouter);
+        rpg.setTokenLockStatus(tokenId, unlockTime);
 
-    vm.prank(contractOwner); // Prank as the owner
-    rpg.setMintPrice(newMintPrice); // Attempt to set the new mint price
-    assertEq(rpg.mintPrice(), newMintPrice); // Assert the mint price was successfully updated
+        // Warp to a time after the unlock time just to be sure
+        cheats.warp(block.timestamp + 1 days);
+
+        // Call the protected function here, e.g., `rpg.useToken(tokenId);`
+        // No revert expected if the function is correctly implemented and uses the `isUnlocked` modifier
+    }
 }

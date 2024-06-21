@@ -18,13 +18,13 @@ contract CCIPTokenSender is OwnerIsCreator {
     error DestinationChainNotWhitelisted(uint64 destinationChainSelector);
     error NothingToWithdraw();
 
+    // The chain selector of the destination chain.
+    // The address of the receiver on the destination chain.
+    // The token address that was transferred.
+    // The token amount that was transferred.
+    // the token address used to pay CCIP fees.
+    // The fees paid for sending the message.
     event TokensTransferred( // The unique ID of the message.
-        // The chain selector of the destination chain.
-        // The address of the receiver on the destination chain.
-        // The token address that was transferred.
-        // The token amount that was transferred.
-        // the token address used to pay CCIP fees.
-        // The fees paid for sending the message.
         bytes32 indexed messageId,
         uint64 indexed destinationChainSelector,
         address receiver,
@@ -90,7 +90,7 @@ contract CCIPTokenSender is OwnerIsCreator {
 
         emit TokensTransferred(
             messageId, _destinationChainSelector, _receiver, _token, _amount, address(linkToken), fees
-            );
+        );
     }
 
     function withdrawToken(address _beneficiary, address _token) public onlyOwner {

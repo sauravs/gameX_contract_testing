@@ -30,12 +30,12 @@ contract CCIP_RPG_RECEIVER is CCIPReceiver, OwnerIsCreator {
     error SenderNotAllowlisted(address sender); // Used when the sender has not been allowlisted by the contract owner.
     error InvalidReceiverAddress(); // Used when the receiver address is 0.
 
+    // The chain selector of the destination chain.
+    // The address of the receiver on the destination chain.
+    // The text being sent.
+    // the token address used to pay CCIP fees.
+    // The fees paid for sending the CCIP message.
     event MessageSent( // The unique ID of the CCIP message.
-        // The chain selector of the destination chain.
-        // The address of the receiver on the destination chain.
-        // The text being sent.
-        // the token address used to pay CCIP fees.
-        // The fees paid for sending the CCIP message.
         bytes32 indexed messageId,
         uint64 indexed destinationChainSelector,
         address receiver,
@@ -341,7 +341,7 @@ contract CCIP_RPG_RECEIVER is CCIPReceiver, OwnerIsCreator {
             any2EvmMessage.sourceChainSelector,
             abi.decode(any2EvmMessage.sender, (address)),
             abi.decode(any2EvmMessage.data, (string))
-            );
+        );
     }
 
     function _buildCCIPMessage(address _receiver, string calldata _text, address _feeTokenAddress, uint256 gasLimit)
