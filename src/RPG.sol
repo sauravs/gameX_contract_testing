@@ -203,7 +203,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     function upgrade(uint256 tokenId) public payable isTokenMinted(tokenId) isUnlocked(tokenId) {
         StatType memory previousStat = upgradeMapping[tokenId];
         StatType memory newStat = calculateUpgrade(previousStat);
-        require(msg.value >= calculatePrice(newStat), "insufficient fund for upgrade");
+        require(msg.value >= calculatePrice(newStat), "insufficient fund for upgrade"); //@auditV2: does it give us how much cost it will take from me to upgrade the NFT in advance from frontend
         upgradeMapping[tokenId] = newStat;
     }
 

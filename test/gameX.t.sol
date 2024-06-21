@@ -402,10 +402,75 @@ contract GameXTest is Test {
         vm.expectRevert(bytes("Token is not Minted"));
         rpg.getSpecial(tokenId);
     }
+     
+
+       function testUpgradeSuccess() public {
+                // Mint a nft token
+        uint256 mintPrice = rpg.mintPrice();
+        uint256 tokenId = 0;
+        assertEq(mintPrice, 10000000000000000, "Incorrect Mint Price");
+
+        vm.deal(minterA, 100 ether);
+        vm.prank(minterA);
+        rpg.mint{value: mintPrice}();
+
+        address newOwner = rpg.ownerOf(tokenId);
+        assertEq(newOwner, minterA, "Token was not minted correctly");
 
 
+        uint256 initialBalance = address(rpg).balance;
+         uint256  BASE_PRICE_IN_MATIC = 1e18 / 100;     //0.01 matic @auditV2: what is this for
+        uint256 upgradeCost = BASE_PRICE_IN_MATIC; // Adjust this based on how you calculate the upgrade cost in your contract
+console.log("upgradeCost", upgradeCost);
+console.log("initialBalance", initialBalance);
+        // // Send enough MATIC to cover the upgrade cost
+         
+        vm.deal(minterB, 100 ether);
+        vm.startPrank(minterB);
+        rpg.upgrade{value: 1 ether}(tokenId);
+        vm.stopPrank();
+
+        // StatType memory upgradedStat = rpg.upgradeMapping(tokenId);
+        // assertTrue(upgradedStat.stat1 > 10 && upgradedStat.stat2 > 10, "Stats were not upgraded");
+        // assertEq(address(rpg).balance, initialBalance + upgradeCost, "Upgrade cost was not transferred");
+        // vm.stopPrank();
+    }
 
 
+     function testUpgradeForUnmintedToken() public {
+        uint256 tokenId = 999; // Assuming this token is not minted
+        uint256 upgradeCost = RPG.BASE_PRICE_IN_MATIC;
+
+        vm.deal(address(this), upgradeCost);
+        vm.startPrank(address(this));
+        vm.expectRevert("Token is not Minted");
+        rpg.upgrade{value: upgradeCost}(tokenId);
+        vm.stopPrank();
+    }
+
+
+     function testUpgradeWithInsufficientFunds() public {
+        uint256 tokenId = 1;
+        uint256 insufficientFunds = RPG.BASE_PRICE_IN_MATIC / 2; // Half the required upgrade cost
+
+        vm.startPrank(address(this));
+        vm.expectRevert("insufficient fund for upgrade");
+        rpg.upgrade{value: insufficientFunds}(tokenId);
+        vm.stopPrank();
+    }
+
+    function testUpgradeForLockedToken() public {
+        uint256 tokenId = 2;
+        // Lock the token; assuming a function exists to lock the token
+        // rpg.lockToken(tokenId, futureTimestamp); // Lock the token; adjust based on actual contract
+
+        uint256 upgradeCost = RPG.BASE_PRICE_IN_MATIC;
+        vm.deal(address(this), upgradeCost);
+        vm.startPrank(address(this));
+        vm.expectRevert("Token is locked");
+        rpg.upgrade{value: upgradeCost}(tokenId);
+        vm.stopPrank();
+    }
 
 
 
