@@ -192,7 +192,7 @@ contract CCIP_RPG_SENDER is CCIPReceiver, OwnerIsCreator {
         address senderNftContractAddress,
         address destinationNftContractAddress,
         uint64 destinationChainId,
-        address _receiver //ccip receiver opposite chain
+        address _receiver //ccip receiver opposite chain    //@audit : why open for public access?
     ) public payable {
         nftContract = IRPGItemNFT(senderNftContractAddress);
         address nftOwner = nftContract.getOwner(_tokenId);

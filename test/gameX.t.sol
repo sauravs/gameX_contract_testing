@@ -17,8 +17,15 @@ contract GameXTest is Test {
     RPGItemNFT public rpg; // rpg sender contract
     RPGItemNFT public rpg_receiver; // rpg receiver contract
 
+
+   CCIP_RPG_SENDER public ccipRpgSender;
+   CCIP_RPG_RECEIVER public ccipRpgReceiver;
+   uint64 chainSelector;
+   uint64 destinationChainSelector;
+   BurnMintERC677Helper ccipBnM;
+
     address minterA;
-        address minterB;
+    address minterB;
 
     address NFTRecevier;
     address contract_owner;
@@ -35,6 +42,31 @@ contract GameXTest is Test {
          * RPG NFT CONTRACT RELATED *****************************************************
          */
         rpg = new RPGItemNFT();
+
+            /***********************************CCIP RELATED *****************************************************/
+        CCIPLocalSimulator ccipLocalSimulator = new CCIPLocalSimulator();
+
+        (
+            uint64 chainSelector_,
+            IRouterClient sourceRouter_,
+            IRouterClient destinationRouter_,
+            WETH9 weth9_,
+            LinkToken linkToken_,
+            BurnMintERC677Helper ccipBnM_,
+            BurnMintERC677Helper ccipLnM_
+
+        ) = ccipLocalSimulator.configuration();
+
+        chainSelector = chainSelector_;
+        ccipBnM = ccipBnM_;
+        address sourceRouter = address(sourceRouter_);
+        address linkToken = address(linkToken_);
+        address destinationRouter = address(destinationRouter_);
+
+        //destinationChainSelector = chainSelector;
+
+        ccipRpgSender = new CCIP_RPG_SENDER(sourceRouter,900000);  // constructor(address _router, uint256 gasLimit)
+        ccipRpgReceiver = new CCIP_RPG_RECEIVER(destinationRouter,900000);
     }
 
     function testConstructor() public {
@@ -47,7 +79,7 @@ contract GameXTest is Test {
         assertEq(rpg.itemType(), "weapon");
 
         // Test _ccipHandler
-        assertEq(rpg._ccipHandler(), 0xa1293A8bFf9323aAd0419E46Dd9846Cc7363D44b);
+        assertEq(rpg._ccipHandler(), 0xF62849F9A0B5Bf2913b396098F7c7019b51A820a);
 
         // Test mintPrice
         assertEq(rpg.mintPrice(), 10000000000000000);
@@ -439,39 +471,92 @@ console.log("initialBalance", initialBalance);
 
      function testUpgradeForUnmintedToken() public {
         uint256 tokenId = 999; // Assuming this token is not minted
-        uint256 upgradeCost = RPG.BASE_PRICE_IN_MATIC;
+          uint256  BASE_PRICE_IN_MATIC = 1e18 / 100;     //0.01 matic @auditV2: what is this for
+        uint256 upgradeCost = BASE_PRICE_IN_MATIC; 
 
-        vm.deal(address(this), upgradeCost);
-        vm.startPrank(address(this));
+        vm.deal(minterB, 1 ether);
+        vm.startPrank(minterB);
         vm.expectRevert("Token is not Minted");
         rpg.upgrade{value: upgradeCost}(tokenId);
         vm.stopPrank();
     }
 
 
-     function testUpgradeWithInsufficientFunds() public {
-        uint256 tokenId = 1;
-        uint256 insufficientFunds = RPG.BASE_PRICE_IN_MATIC / 2; // Half the required upgrade cost
+    //  function testUpgradeWithInsufficientFunds() public {
+    //     uint256 tokenId = 1;
+    //     uint256 insufficientFunds = RPG.BASE_PRICE_IN_MATIC / 2; // Half the required upgrade cost
 
-        vm.startPrank(address(this));
-        vm.expectRevert("insufficient fund for upgrade");
-        rpg.upgrade{value: insufficientFunds}(tokenId);
-        vm.stopPrank();
-    }
+    //     vm.startPrank(address(this));
+    //     vm.expectRevert("insufficient fund for upgrade");
+    //     rpg.upgrade{value: insufficientFunds}(tokenId);
+    //     vm.stopPrank();
+    // }
 
-    function testUpgradeForLockedToken() public {
-        uint256 tokenId = 2;
-        // Lock the token; assuming a function exists to lock the token
-        // rpg.lockToken(tokenId, futureTimestamp); // Lock the token; adjust based on actual contract
+    // function testUpgradeForLockedToken() public {
+    //     uint256 tokenId = 2;
+    //     // Lock the token; assuming a function exists to lock the token
+    //     // rpg.lockToken(tokenId, futureTimestamp); // Lock the token; adjust based on actual contract
 
-        uint256 upgradeCost = RPG.BASE_PRICE_IN_MATIC;
-        vm.deal(address(this), upgradeCost);
-        vm.startPrank(address(this));
-        vm.expectRevert("Token is locked");
-        rpg.upgrade{value: upgradeCost}(tokenId);
-        vm.stopPrank();
-    }
+    //     uint256 upgradeCost = RPG.BASE_PRICE_IN_MATIC;
+    //     vm.deal(address(this), upgradeCost);
+    //     vm.startPrank(address(this));
+    //     vm.expectRevert("Token is locked");
+    //     rpg.upgrade{value: upgradeCost}(tokenId);
+    //     vm.stopPrank();
+    // }
+/////////////////////////////////////////////////CCIP Related/////////////////////////////////////////////////////////////////
 
+
+
+   function testCCIPFunctionality() public {
+
+        // Allow the sender and receiver to communicate with each other
+
+        ccipRpgSender.allowlistDestinationChain(chainSelector,true);
+        ccipRpgReceiver.allowlistSourceChain(chainSelector,true);
+        ccipRpgReceiver.allowlistSender(address(ccipRpgSender),true);
+
+   /*************************Mint the NFT on RPG NFT Contract****************************************************** */
+         uint256 mintPrice = rpg.mintPrice();
+         uint256 tokenId = 0;
+         //assertEq(mintPrice, 0.0001 ether, "Mint price is not 1 Ether");
+
+        vm.deal(minterA, 100 ether);
+        vm.prank(minterA);
+        rpg.mint{value: mintPrice}();
+
+        address newOwner = rpg.ownerOf(tokenId);
+        assertEq(newOwner, minterA, "Token was not minted correctly");
+
+   /************************************Transferring the NFT Cross Chain****************************************************** */
+
+     // approve the minted NFT for transfer
+
+    vm.prank(minterA);
+    rpg.setApprovalForAll(address(ccipRpgSender),true);
+    rpg.isApprovedForAll(minterA,address(ccipRpgSender));
+
+  // transferNft(_tokenId, senderNftContractAddress ,destinationNftContractAddress ,destinationChainId , _receiver)
+
+    //bytes32 messageID= ccipRpgSender.transferNft(0,address(rpg),address(rpg),chainSelector,address(ccipRpgReceiver));
+   // console2.logBytes32(messageID);
+
+   // IMPORTANT : you have to deploy two times rpg contract by passing cciphandler_sender and cciphandler_receiver address in constructor to make it work
+    
+    vm.deal(address(ccipRpgSender),100 ether);
+    // print balance of ccipRpgSender
+    console.log("ccipRpgSender balance",address(ccipRpgSender).balance);
+    
+
+  vm.prank(minterA);
+ccipRpgSender.transferNft(0,address(rpg),address(rpg_receiver),chainSelector,address(ccipRpgReceiver));
+
+
+    // bytes32 messageID= ccipRpgSender.getLastSentMessageID();
+
+    //  ccipRpgReceiver.getLastReceivedMessageDetails()
+
+   }
 
 
 

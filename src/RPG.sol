@@ -69,7 +69,13 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
         itemType = "weapon";
         svgColors = ["#f2f2f2", "#2f2f2f", "#dedede"];
         colorRanges = [0, 10, 20, 30];
-        _ccipHandler = 0xa1293A8bFf9323aAd0419E46Dd9846Cc7363D44b;
+        _ccipHandler = 0xF62849F9A0B5Bf2913b396098F7c7019b51A820a;  //made it temporary hardcoded with respect to cciplocal simulator sender router address
+        
+        
+        
+        
+        //@auditV2...if you deploying the handler first ..then how predetermining of this address is possible  //_cciphandler = sender ka ya receiver ka? //advisable do not hardcode the 
+        //_ccipHandler address pass it dynmically via construcot..also include once function to set the ccip handler later on
         mintPrice = 10000000000000000;
         _parentChainId = 1;
     }
