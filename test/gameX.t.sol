@@ -43,6 +43,7 @@ contract GameXTest is Test {
          */
         rpg = new RPGItemNFT();
 
+
             /***********************************CCIP RELATED *****************************************************/
         CCIPLocalSimulator ccipLocalSimulator = new CCIPLocalSimulator();
 
@@ -543,8 +544,7 @@ console.log("initialBalance", initialBalance);
 
    // IMPORTANT : you have to deploy two times rpg contract by passing cciphandler_sender and cciphandler_receiver address in constructor to make it work
     
-    vm.deal(address(ccipRpgSender),100 ether);
-    // print balance of ccipRpgSender
+    vm.deal(address(ccipRpgSender),100 ether); //for the purose of sending the transaction by ccip_sender contract as fee in native token
     console.log("ccipRpgSender balance",address(ccipRpgSender).balance);
     
 
