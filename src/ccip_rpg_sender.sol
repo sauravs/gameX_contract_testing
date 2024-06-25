@@ -219,7 +219,7 @@ contract CCIP_RPG_SENDER is CCIPReceiver, OwnerIsCreator {
         );
 
         uint256 unlockTime = block.timestamp + 2 hours;
-        nftContract.setTokenLockStatus(_tokenId, unlockTime);
+        //nftContract.setTokenLockStatus(_tokenId, unlockTime);
         this.sendMessage{value: msg.value}(destinationChainId, _receiver, message);
     }
 

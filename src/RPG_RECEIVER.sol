@@ -10,7 +10,7 @@ import "./RPGItemUtils.sol";
 
 //@dev trailing __ in var names means they will be hardcoded when contract is generated and depolyed by us
 
-contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
+contract RPGItemNFT_RECEIVER is ERC721, Ownable, RPGItemUtils {
     using Strings for uint256;
 
     uint8[] private colorRanges;
@@ -69,7 +69,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
         itemType = "weapon";
         svgColors = ["#f2f2f2", "#2f2f2f", "#dedede"];
         colorRanges = [0, 10, 20, 30];
-        _ccipHandler = 0xF62849F9A0B5Bf2913b396098F7c7019b51A820a;  //made it temporary hardcoded with respect to cciplocal simulator sender router address
+        _ccipHandler = 0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9;  //made it temporary hardcoded with respect to cciplocal simulator receiver  address
         
         
         
