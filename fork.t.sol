@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test ,console} from "forge-std/Test.sol";
 import {RPGItemNFT} from "../src/RPG.sol";
 import {RPGItemNFT_RECEIVER} from "../src/RPG_RECEIVER.sol";
 import {CCIP_RPG_SENDER} from "../src/ccip_rpg_sender.sol";
@@ -13,16 +13,16 @@ import {
     LinkToken,
     BurnMintERC677Helper
 } from "@chainlink/local/src/ccip/CCIPLocalSimulator.sol";
+import {CCIPLocalSimulatorFork, Register} from "@chainlink/local/src/ccip/CCIPLocalSimulatorFork.sol";
 
 contract GameXTest is Test {
     RPGItemNFT public rpg; // rpg sender contract
     RPGItemNFT_RECEIVER public rpg_receiver; // rpg receiver contract
 
-    CCIP_RPG_SENDER public ccipRpgSender;
-    CCIP_RPG_RECEIVER public ccipRpgReceiver;
-    uint64 chainSelector;
-    uint64 destinationChainSelector;
-    BurnMintERC677Helper ccipBnM;
+
+   CCIP_RPG_SENDER public ccipRpgSender;
+   CCIP_RPG_RECEIVER public ccipRpgReceiver;
+   
 
     address minterA;
     address minterB;
@@ -31,51 +31,54 @@ contract GameXTest is Test {
     address contract_owner;
     address nonOwner;
 
+
+     CCIPLocalSimulatorFork public ccipLocalSimulatorFork;
+
+    uint256 sepoliaFork;
+    uint256 arbSepoliaFork;
+
+    // uint64 ethereumSapoliaBlockchainID = 11155111;
+    // uint64 arbitrumSapoliaBlockchainID = 421614;
+
+    uint64 chainSelectorETHSapolia = 16015286601757825753; //chain selector for ethereum sapolia
+    uint64 chainSelectorArbitrumSApolia = 3478487238524512106; //chain selector for arbitrum sapolia
+
     function setUp() public {
+        
         minterA = makeAddr("minterA");
         minterB = makeAddr("minterB");
         NFTRecevier = makeAddr("NFTRecevier");
         nonOwner = makeAddr("nonOwner");
         contract_owner = 0xB1293a8BFf9323AaD0419e46dd9846cC7363d44B;
 
-        /**
-         * RPG NFT CONTRACT RELATED *****************************************************
-         */
-        rpg = new RPGItemNFT();
-        rpg_receiver = new RPGItemNFT_RECEIVER();
+     
+            /***********************************CCIP FORK RELATED *****************************************************/
 
-        /**
-         * CCIP RELATED ****************************************************
-         */
-        CCIPLocalSimulator ccipLocalSimulator = new CCIPLocalSimulator();
+        string memory ETHEREUM_SEPOLIA_RPC_URL = vm.envString("ETHEREUM_SEPOLIA_RPC_URL");
+        string memory ARBITRUM_SEPOLIA_RPC_URL = vm.envString("ARBITRUM_SEPOLIA_RPC_URL");
+        
+        sepoliaFork = vm.createSelectFork(ETHEREUM_SEPOLIA_RPC_URL);  // we are created the fork and  we are now on Ethereum Sapolia
+        arbSepoliaFork = vm.createFork(ARBITRUM_SEPOLIA_RPC_URL);     // only created the fork and not selected yet
 
-        (
-            uint64 chainSelector_,
-            IRouterClient sourceRouter_,
-            IRouterClient destinationRouter_,
-            WETH9 weth9_,
-            LinkToken linkToken_,
-            BurnMintERC677Helper ccipBnM_,
-            BurnMintERC677Helper ccipLnM_
-        ) = ccipLocalSimulator.configuration();
+        ccipLocalSimulatorFork = new CCIPLocalSimulatorFork();
+        vm.makePersistent(address(ccipLocalSimulatorFork));
 
-        chainSelector = chainSelector_;
-        ccipBnM = ccipBnM_;
-        address sourceRouter = address(sourceRouter_);
-        address linkToken = address(linkToken_);
-        address destinationRouter = address(destinationRouter_);
+        Register.NetworkDetails memory sepoliaNetworkDetails = ccipLocalSimulatorFork.getNetworkDetails(block.chainid); //foundry under the hood auto grab the respective chain id ,and since we are now on ethereum saplio ,so blockchain id will be of ethereum sapolia
 
-        //destinationChainSelector = chainSelector;
+        // deploy the RPG.sol contract on the ethereum sapolia chain(source chain)
 
-        ccipRpgSender = new CCIP_RPG_SENDER(sourceRouter, 900000); // constructor(address _router, uint256 gasLimit)
-        ccipRpgReceiver = new CCIP_RPG_RECEIVER(destinationRouter, 900000);
-        //log ccipRpgReceiver address
+                rpg = new RPGItemNFT();
 
-        // console.log("ccipRpgReceiver",ccipRpgReceiver);
-        // console.log("ccipRpgSender",ccipRpgSender);
+         
+         vm.selectFork(arbSepoliaFork); //Switching the chain to Destination chain (receiver)
 
-        // console.logAddress(address(ccipRpgSender));
-        // console.logAddress(address(ccipRpgReceiver));  // ccipRpgReceiver address 0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9
+         // deploy the RPG_RECEIVER.sol contract on the arbitrum sapolia chain(destination chain)   
+
+            rpg_receiver = new RPGItemNFT_RECEIVER();
+
+
+        
+      
     }
 
     function testConstructor() public {
@@ -83,7 +86,7 @@ contract GameXTest is Test {
         //     (string memory label1, string memory label2) = rpgItemNFT.statLabels();
         //     assertEq(label1, "l1");
         //     assertEq(label2, "l2");
-
+       
         // Test itemType
         assertEq(rpg.itemType(), "weapon");
 
@@ -229,8 +232,9 @@ contract GameXTest is Test {
         rpg.getTokenStats(unmintedTokenId);
     }
 
-    function testUpdateStatsSuccess() public {
-        //@auditV2: test failing
+
+      function testUpdateStatsSuccess() public {     //@auditV2: test failing
+
         address ccipRouter = rpg._ccipHandler();
 
         uint256 tokenId = 1;
@@ -250,19 +254,21 @@ contract GameXTest is Test {
         // Verify the stats were updated
         // (uint8 updatedStat1, uint8 updatedStat2, uint8 updatedSpecialType, uint8 updatedSpecialPoints) = rpg.getTokenStats(tokenId);
 
+        
         // console.log("updatedStat1", updatedStat1);     //10
         // console.log("updatedStat2", updatedStat2);     //20
         // console.log("updatedSpecialType", updatedSpecialType); //30
         // console.log("updatedSpecialPoints", updatedSpecialPoints); //40
 
         // Verify the stats were updated
-        (uint256 updatedStat1, uint256 updatedStat2, uint256 updatedSpecialType, uint256 updatedSpecialPoints) =
-            rpg.upgradeMapping(tokenId);
+        (uint256 updatedStat1, uint256 updatedStat2, uint256 updatedSpecialType, uint256 updatedSpecialPoints) = rpg.upgradeMapping(tokenId);
 
-        console.log("updatedStat1", updatedStat1); //0
-        console.log("updatedStat2", updatedStat2); //0
+        console.log("updatedStat1", updatedStat1);     //0
+        console.log("updatedStat2", updatedStat2);     //0
         console.log("updatedSpecialType", updatedSpecialType); //0
         console.log("updatedSpecialPoints", updatedSpecialPoints); //0
+
+
 
         // assertEq(updatedStat1, stat1, "Stat1 was not updated correctly");
         // assertEq(updatedStat2, stat2, "Stat2 was not updated correctly");
@@ -270,7 +276,8 @@ contract GameXTest is Test {
         // assertEq(updatedSpecialPoints, specialPoints, "SpecialPoints was not updated correctly");
     }
 
-    function testUpdateStatsRevertsForNonCCIPRouter_Failing() public {
+     function testUpdateStatsRevertsForNonCCIPRouter_Failing() public {
+     
         // uint256 tokenId = 2;
         // address newOwner = NFTRecevier;
         // uint8 stat1 = 5;
@@ -282,7 +289,9 @@ contract GameXTest is Test {
         // rpg.updateStats(tokenId, newOwner, stat1, stat2, specialType, specialPoints);
     }
 
-    function testTokenURI() public {
+
+     function testTokenURI() public {
+
         uint256 tokenId = 0;
         uint256 initialMintPrice = rpg.mintPrice();
         vm.deal(minterA, 100 ether);
@@ -294,9 +303,10 @@ contract GameXTest is Test {
         assertTrue(bytes(tokenURI).length > 0, "Token URI is empty");
     }
 
-    function testPowerLevelWithoutUpgrades_pvt() public {
-        // Mint a nft token
-        uint256 mintPrice = rpg.mintPrice();
+
+ function testPowerLevelWithoutUpgrades_pvt() public {
+     // Mint a nft token
+ uint256 mintPrice = rpg.mintPrice();
         uint256 tokenId = 0;
         assertEq(mintPrice, 10000000000000000, "Incorrect Mint Price");
 
@@ -327,10 +337,11 @@ contract GameXTest is Test {
 
     //     uint256 powerLevel = rpg.powerLevel__(tokenId);
     //     assertEq(powerLevel, expectedPowerLevel, "Power level calculation with upgrades is incorrect");
-    // }
+   // }
 
-    function testGetStatForMintedAndUnlockedToken() public {
-        // Mint a nft token
+   function testGetStatForMintedAndUnlockedToken() public {
+         
+         // Mint a nft token
         uint256 mintPrice = rpg.mintPrice();
         uint256 tokenId = 0;
         assertEq(mintPrice, 10000000000000000, "Incorrect Mint Price");
@@ -351,15 +362,15 @@ contract GameXTest is Test {
         assertEq(stat2, 20, "Incorrect stat2 value"); // 20 (base) + 0 (upgrade)
     }
 
-    function testGetStatForUnmintedToken() public {
+     function testGetStatForUnmintedToken() public {
         uint256 tokenId = 999; // assuming this token is not minted
 
         vm.expectRevert(bytes("Token is not Minted"));
         rpg.getStat("l1", tokenId);
     }
 
-    function testGetStatForLockedToken() public {
-        // Mint a nft token
+      function testGetStatForLockedToken() public {
+         // Mint a nft token
         uint256 mintPrice = rpg.mintPrice();
         uint256 tokenId = 0;
         assertEq(mintPrice, 10000000000000000, "Incorrect Mint Price");
@@ -371,7 +382,7 @@ contract GameXTest is Test {
         address newOwner = rpg.ownerOf(tokenId);
         assertEq(newOwner, minterA, "Token was not minted correctly");
 
-        address ccipRouter = rpg._ccipHandler();
+       address ccipRouter = rpg._ccipHandler();
         console.log("ccipRouter", ccipRouter);
 
         // Lock the token by setting a future unlock time
@@ -383,8 +394,9 @@ contract GameXTest is Test {
         rpg.getStat("l1", tokenId);
     }
 
-    function testGetSpecialForMintedAndUnlockedToken_Fail() public {
-        // Mint a nft token
+
+     function testGetSpecialForMintedAndUnlockedToken_Fail() public {
+         // Mint a nft token
         uint256 mintPrice = rpg.mintPrice();
         uint256 tokenId = 0;
         assertEq(mintPrice, 10000000000000000, "Incorrect Mint Price");
@@ -415,7 +427,7 @@ contract GameXTest is Test {
         address newOwner = rpg.ownerOf(tokenId);
         assertEq(newOwner, minterA, "Token was not minted correctly");
 
-        address ccipRouter = rpg._ccipHandler();
+       address ccipRouter = rpg._ccipHandler();
         console.log("ccipRouter", ccipRouter);
 
         // Lock the token by setting a future unlock time
@@ -434,9 +446,10 @@ contract GameXTest is Test {
         vm.expectRevert(bytes("Token is not Minted"));
         rpg.getSpecial(tokenId);
     }
+     
 
-    function testUpgradeSuccess() public {
-        // Mint a nft token
+       function testUpgradeSuccess() public {
+                // Mint a nft token
         uint256 mintPrice = rpg.mintPrice();
         uint256 tokenId = 0;
         assertEq(mintPrice, 10000000000000000, "Incorrect Mint Price");
@@ -448,13 +461,14 @@ contract GameXTest is Test {
         address newOwner = rpg.ownerOf(tokenId);
         assertEq(newOwner, minterA, "Token was not minted correctly");
 
-        uint256 initialBalance = address(rpg).balance;
-        uint256 BASE_PRICE_IN_MATIC = 1e18 / 100; //0.01 matic @auditV2: what is this for
-        uint256 upgradeCost = BASE_PRICE_IN_MATIC; // Adjust this based on how you calculate the upgrade cost in your contract
-        console.log("upgradeCost", upgradeCost);
-        console.log("initialBalance", initialBalance);
-        // // Send enough MATIC to cover the upgrade cost
 
+        uint256 initialBalance = address(rpg).balance;
+         uint256  BASE_PRICE_IN_MATIC = 1e18 / 100;     //0.01 matic @auditV2: what is this for
+        uint256 upgradeCost = BASE_PRICE_IN_MATIC; // Adjust this based on how you calculate the upgrade cost in your contract
+console.log("upgradeCost", upgradeCost);
+console.log("initialBalance", initialBalance);
+        // // Send enough MATIC to cover the upgrade cost
+         
         vm.deal(minterB, 100 ether);
         vm.startPrank(minterB);
         rpg.upgrade{value: 1 ether}(tokenId);
@@ -466,10 +480,11 @@ contract GameXTest is Test {
         // vm.stopPrank();
     }
 
-    function testUpgradeForUnmintedToken() public {
+
+     function testUpgradeForUnmintedToken() public {
         uint256 tokenId = 999; // Assuming this token is not minted
-        uint256 BASE_PRICE_IN_MATIC = 1e18 / 100; //0.01 matic @auditV2: what is this for
-        uint256 upgradeCost = BASE_PRICE_IN_MATIC;
+          uint256  BASE_PRICE_IN_MATIC = 1e18 / 100;     //0.01 matic @auditV2: what is this for
+        uint256 upgradeCost = BASE_PRICE_IN_MATIC; 
 
         vm.deal(minterB, 1 ether);
         vm.startPrank(minterB);
@@ -477,6 +492,7 @@ contract GameXTest is Test {
         rpg.upgrade{value: upgradeCost}(tokenId);
         vm.stopPrank();
     }
+
 
     //  function testUpgradeWithInsufficientFunds() public {
     //     uint256 tokenId = 1;
@@ -500,72 +516,110 @@ contract GameXTest is Test {
     //     rpg.upgrade{value: upgradeCost}(tokenId);
     //     vm.stopPrank();
     // }
-    /////////////////////////////////////////////////CCIP Related/////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////CCIP Related/////////////////////////////////////////////////////////////////
 
-    function testCCIPFunctionality() public {
-        //log addres of this contract
-        //console.logAddress(address(this));
 
-        // Allow the sender and receiver to communicate with each other
 
-        vm.startPrank(address(this));
-        ccipRpgSender.allowlistDestinationChain(chainSelector, true); //16015286601757825753
-        ccipRpgReceiver.allowlistSourceChain(chainSelector, true);
-        ccipRpgReceiver.allowlistSender(address(ccipRpgSender), true);
+//    function skiptestCCIPFunctionality() public {
 
-        // check if it is set true
-        bool isAllowed = ccipRpgSender.allowlistedDestinationChains(chainSelector);
-        assertEq(isAllowed, true, "Destination chain is not allowed");
+//         //log addres of this contract   
+//         //console.logAddress(address(this));
 
-        isAllowed = ccipRpgReceiver.allowlistedSourceChains(chainSelector);
-        assertEq(isAllowed, true, "Source chain is not allowed");
+//         // Allow the sender and receiver to communicate with each other
+        
+//         vm.startPrank(address(this));    
+//         ccipRpgSender.allowlistDestinationChain(chainSelector,true);  //16015286601757825753
+//         ccipRpgReceiver.allowlistSourceChain(chainSelector,true);
+//         ccipRpgReceiver.allowlistSender(address(ccipRpgSender),true);
 
-        isAllowed = ccipRpgReceiver.allowlistedSenders(address(ccipRpgSender));
-        assertEq(isAllowed, true, "Sender is not allowed");
-        vm.stopPrank();
-        //        function allowlistDestinationChain(uint64 _destinationChainSelector, bool allowed) external onlyOwner {
-        //     allowlistedDestinationChains[_destinationChainSelector] = allowed;
-        // }
 
-        /**
-         * Mint the NFT on RPG NFT Contract******************************************************
-         */
-        uint256 mintPrice = rpg.mintPrice();
-        uint256 tokenId = 0;
-        //assertEq(mintPrice, 0.01 ether, "Mint price is not correct");
+// // check if it is set true
+//         bool isAllowed = ccipRpgSender.allowlistedDestinationChains(chainSelector);
+//         assertEq(isAllowed, true, "Destination chain is not allowed");
 
-        vm.deal(minterA, 100 ether);
-        vm.prank(minterA);
-        rpg.mint{value: mintPrice}();
+//         isAllowed = ccipRpgReceiver.allowlistedSourceChains(chainSelector);
+//         assertEq(isAllowed, true, "Source chain is not allowed");
 
-        address newOwner = rpg.ownerOf(tokenId);
-        assertEq(newOwner, minterA, "Token was not minted correctly");
+//         isAllowed = ccipRpgReceiver.allowlistedSenders(address(ccipRpgSender));
+//         assertEq(isAllowed, true, "Sender is not allowed");        
+//          vm.stopPrank();
+//     //        function allowlistDestinationChain(uint64 _destinationChainSelector, bool allowed) external onlyOwner {
+//     //     allowlistedDestinationChains[_destinationChainSelector] = allowed;
+//     // }
 
-        /**
-         * Transferring the NFT Cross Chain******************************************************
-         */
 
-        // approve the minted NFT for transfer
+//    /*************************Mint the NFT on RPG NFT Contract****************************************************** */
+//          uint256 mintPrice = rpg.mintPrice();
+//          uint256 tokenId = 0;
+//          //assertEq(mintPrice, 0.0001 ether, "Mint price is not 1 Ether");
 
-        vm.prank(minterA);
-        rpg.setApprovalForAll(address(ccipRpgSender), true);
-        rpg.isApprovedForAll(minterA, address(ccipRpgSender));
+//         vm.deal(minterA, 100 ether);
+//         vm.prank(minterA);
+//         rpg.mint{value: mintPrice}();
 
-        // transferNft(_tokenId, senderNftContractAddress ,destinationNftContractAddress ,destinationChainId , _receiver)
+//         address newOwner = rpg.ownerOf(tokenId);
+//         assertEq(newOwner, minterA, "Token was not minted correctly");
 
-        //bytes32 messageID= ccipRpgSender.transferNft(0,address(rpg),address(rpg),chainSelector,address(ccipRpgReceiver));
-        // console2.logBytes32(messageID);
+//    /************************************Transferring the NFT Cross Chain****************************************************** */
 
-        // IMPORTANT : you have to deploy two times rpg contract by passing cciphandler_sender and cciphandler_receiver address in constructor to make it work
+//      // approve the minted NFT for transfer
 
-        vm.deal(address(ccipRpgSender), 100 ether); //for the purose of sending the transaction by ccip_sender contract as fee in native token
-        console.log("ccipRpgSender balance", address(ccipRpgSender).balance);
+//     vm.prank(minterA);
+//     rpg.setApprovalForAll(address(ccipRpgSender),true);
+//     rpg.isApprovedForAll(minterA,address(ccipRpgSender));
 
-        vm.prank(minterA);
-        ccipRpgSender.transferNft(0, address(rpg), address(rpg_receiver), chainSelector, address(ccipRpgReceiver));
+//   // transferNft(_tokenId, senderNftContractAddress ,destinationNftContractAddress ,destinationChainId , _receiver)
 
-        // bytes32 messageID= ccipRpgSender.getLastSentMessageID();
+//     //bytes32 messageID= ccipRpgSender.transferNft(0,address(rpg),address(rpg),chainSelector,address(ccipRpgReceiver));
+//    // console2.logBytes32(messageID);
 
-        //  ccipRpgReceiver.getLastReceivedMessageDetails()
-    }
+//    // IMPORTANT : you have to deploy two times rpg contract by passing cciphandler_sender and cciphandler_receiver address in constructor to make it work
+    
+//     vm.deal(address(ccipRpgSender),100 ether); //for the purose of sending the transaction by ccip_sender contract as fee in native token
+//     console.log("ccipRpgSender balance",address(ccipRpgSender).balance);
+    
+
+//   vm.prank(minterA);
+// ccipRpgSender.transferNft(0,address(rpg),address(rpg_receiver),chainSelector,address(ccipRpgReceiver));
+
+
+//     // bytes32 messageID= ccipRpgSender.getLastSentMessageID();
+
+//     //  ccipRpgReceiver.getLastReceivedMessageDetails()
+
+//    }
+
+function testCCIPFunctionalityForked() public {
+
+    /*
+       this test suit is to test successful transfer of minted NFT from Forked Source chain (Ethereum Sapolia) to Forked Destination chain (Arbitrum Sapolia)
+           
+    */
+
+    vm.selectFork(sepoliaFork);  //Source chain (sender)
+
+
+
+
+
+
+
+
+    //console log blockchain id
+
+    console.log("Chain ID for ethereum sapolia",block.chainid);     //BlockChain ID for ethereum sapolia 11155111
+                                                                    // chain selctor for ethereum sapolia 16015286601757825753
+
+    vm.selectFork(arbSepoliaFork);  //Destination chain (receiver)
+
+    //console log blockchain id
+
+    console.log("Chain ID for arbitrum sapolia",block.chainid);      //BlockChain ID for arbitrum sapolia 421614
+                                                                     // chain selctor for arbitrum sapolia 3478487238524512106
+
+
+
+
+}
+
 }

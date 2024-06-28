@@ -69,12 +69,9 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
         itemType = "weapon";
         svgColors = ["#f2f2f2", "#2f2f2f", "#dedede"];
         colorRanges = [0, 10, 20, 30];
-        _ccipHandler = 0xF62849F9A0B5Bf2913b396098F7c7019b51A820a;  //made it temporary hardcoded with respect to cciplocal simulator sender router address
-        
-        
-        
-        
-        //@auditV2...if you deploying the handler first ..then how predetermining of this address is possible  //_cciphandler = sender ka ya receiver ka? //advisable do not hardcode the 
+        _ccipHandler = 0xF62849F9A0B5Bf2913b396098F7c7019b51A820a; //made it temporary hardcoded with respect to cciplocal simulator sender router address
+
+        //@auditV2...if you deploying the handler first ..then how predetermining of this address is possible  //_cciphandler = sender ka ya receiver ka? //advisable do not hardcode the
         //_ccipHandler address pass it dynmically via construcot..also include once function to set the ccip handler later on
         mintPrice = 10000000000000000;
         _parentChainId = 1;
@@ -136,7 +133,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     // @audit : function updateStats() -> anyone who knows the token id would be able to update the stats of the token ,not desirable
     // @dev added modifier so only ccip handler can use this now
 
-    function updateStats(     //@auditV2 : why updatestats are only related to cciprouter?can asset owner not update the stats sitting on single chain and withhout using ccip??
+    function updateStats( //@auditV2 : why updatestats are only related to cciprouter?can asset owner not update the stats sitting on single chain and withhout using ccip??
         //ccip related
         uint256 tokenId,
         address newOwner,
@@ -144,7 +141,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
         uint8 stat2,
         uint8 specialType,
         uint8 specialPoints
-    ) external  returns (bool) {
+    ) external returns (bool) {
         require(newOwner != address(0), "Invalid new owner");
         address currentOwner = ownerOf(tokenId);
         if (currentOwner == address(0)) {
@@ -291,13 +288,10 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
 
     //@audit when no tokenID minted  it should return zero
     // @dev it will work for user defined stat only i.e first 2
-    function getStat(string memory statLabel, uint256 tokenId)     //@auditV2 check for invalid label
-        public
-        view
-        isTokenMinted(tokenId)
-        isUnlocked(tokenId)
-        returns (uint8 stat)
-    {
+    function getStat(
+        string memory statLabel,
+        uint256 tokenId //@auditV2 check for invalid label
+    ) public view isTokenMinted(tokenId) isUnlocked(tokenId) returns (uint8 stat) {
         if (stringEqual(statLabel, statLabels[0])) {
             return upgradeMapping[tokenId].stat1 + baseStat.stat1;
         } else if (stringEqual(statLabel, statLabels[1])) {
@@ -325,7 +319,6 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-   
 
     // @audit why lock check while transferring?
     // @dev coz ccip we need to see if it is locked then nft is on other chain so nft can't be transfer
