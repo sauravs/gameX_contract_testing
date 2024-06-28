@@ -141,7 +141,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
         uint8 stat2,
         uint8 specialType,
         uint8 specialPoints
-    ) external returns (bool) {
+    ) external onlyCCIPRouter returns (bool) {
         require(newOwner != address(0), "Invalid new owner");
         address currentOwner = ownerOf(tokenId);
         if (currentOwner == address(0)) {

@@ -147,6 +147,9 @@ contract GameXTest is Test {
         bool isAllowedSender = ccipRpgReceiver.allowlistedSenders(address(ccipRpgSender));
         assertEq(isAllowedSender, true, "Sender is not allowed");
 
+        vm.deal(address(ccipRpgReceiver), 100 ether);   // to pay for tx gas fee ccipreceiver
+        console.log("ccipRpgSender balance", address(ccipRpgReceiver).balance); 
+
         vm.stopPrank();
 
      //Switch to Source chain (sender) Ethereum Saplio Testnet and mint the NFT
@@ -174,18 +177,21 @@ contract GameXTest is Test {
         console.log("ccipRpgSender balance", address(ccipRpgSender).balance); 
 
 
+       
+
+        vm.deal(minterA, 100 ether); 
+        console.log("minterA balance", minterA.balance); 
+
+        
         // Transfer the minted NFT from Source chain (Ethereum Sapolia) to Destination chain (Arbitrum Sapolia)
 
         vm.prank(minterA);
-        ccipRpgSender.transferNft(0, address(rpg), address(rpg_receiver), arbitrumNetworkDetails.chainSelector, address(ccipRpgReceiver));
+        ccipRpgSender.transferNft{value: 10 ether}(0, address(rpg), address(rpg_receiver), arbitrumNetworkDetails.chainSelector, address(ccipRpgReceiver));
+
+        // check if the NFT is transferred successfully by switching to destination chain
+
+          ccipLocalSimulatorFork.switchChainAndRouteMessage(arbSepoliaFork); // switch to destination chain
 
 
-
-        vm.selectFork(arbSepoliaFork); //Destination chain (receiver)
-
-        //console log blockchain id
-
-        console.log("Chain ID for arbitrum sapolia", block.chainid); //BlockChain ID for arbitrum sapolia 421614
-            // chain selctor for arbitrum sapolia 3478487238524512106
     }
 }
