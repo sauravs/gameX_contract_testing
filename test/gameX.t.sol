@@ -513,6 +513,8 @@ contract GameXTest is Test {
         ccipRpgReceiver.allowlistSourceChain(chainSelector, true);
         ccipRpgReceiver.allowlistSender(address(ccipRpgSender), true);
 
+        ccipRpgReceiver.allowlistDestinationChain(chainSelector, true);
+
         // check if it is set true
         bool isAllowed = ccipRpgSender.allowlistedDestinationChains(chainSelector);
         assertEq(isAllowed, true, "Destination chain is not allowed");
@@ -558,11 +560,13 @@ contract GameXTest is Test {
 
         // IMPORTANT : you have to deploy two times rpg contract by passing cciphandler_sender and cciphandler_receiver address in constructor to make it work
 
-        vm.deal(address(ccipRpgSender), 100 ether); //for the purose of sending the transaction by ccip_sender contract as fee in native token
-        console.log("ccipRpgSender balance", address(ccipRpgSender).balance);
+        vm.deal(minterA, 100 ether); // for the purpose of sending tx fee
+        console.log("minterA balance", minterA.balance);
 
         vm.prank(minterA);
-        ccipRpgSender.transferNft(0, address(rpg), address(rpg_receiver), chainSelector, address(ccipRpgReceiver));
+        ccipRpgSender.transferNft{value: 100 ether}(
+            0, address(rpg), address(rpg_receiver), chainSelector, address(ccipRpgReceiver)
+        );
 
         // bytes32 messageID= ccipRpgSender.getLastSentMessageID();
 

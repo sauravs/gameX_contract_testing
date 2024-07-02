@@ -74,7 +74,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
         //@auditV2...if you deploying the handler first ..then how predetermining of this address is possible  //_cciphandler = sender ka ya receiver ka? //advisable do not hardcode the
         //_ccipHandler address pass it dynmically via construcot..also include once function to set the ccip handler later on
         mintPrice = 10000000000000000;
-        _parentChainId = 1;
+        _parentChainId = 11155111;    //@auditV2 : temporary set it to etherum saplio chain id
     }
 
     receive() external payable {
@@ -94,7 +94,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     }
 
     function setSign(string memory sign) external {
-        //@auditV2 : should be onlyOwner
+        //@auditV2 : should be restricted by onlyOwner
         // This function sets the signature used to verify that the NFT was minted by Game-X.
         // Once the contract is deployed, this signature is set and is used for cross-verification.
         // When checking the minted NFT, this signature is compared against the signature stored in the NFT metadata
@@ -159,10 +159,10 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
 
     function mint() public payable {
         // @audit //@dev this is required to maintain chain and sync all the chain nfts  //@auditV2 :commenting the chain id require check for test purpose..uncomment it later
-        // require(
-        //     _parentChainId == block.chainid,
-        //     string(abi.encodePacked("Mint not allowed, You can mint on ChainId : ", _parentChainId.toString()))
-        // );
+        require(
+            _parentChainId == block.chainid,
+            string(abi.encodePacked("Mint not allowed, You can mint on ChainId : ", _parentChainId.toString()))
+        );
         require(msg.value == mintPrice, "Insufficient Ether");
         uint256 tokenId = _nextTokenId++;
         _safeMint(msg.sender, tokenId);
@@ -239,7 +239,7 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
 
     // @audit power level -> 0 ,1 ,3  // basically it shows value of that asset in marketplace
     function powerLevel__(uint256 tokenId) public view returns (uint256) {
-        //@auditV2 : making it public temporarilty for testing purpose
+        //@auditV2 : making it public temporarilty for testing purpose //also can be made public to validate via UX
         StatType memory previousStat = upgradeMapping[tokenId];
         return ((previousStat.stat1 + baseStat.stat1) + (previousStat.stat2 + baseStat.stat2)) / 2;
     }
