@@ -232,8 +232,8 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     // }
 
     function calculatePrice(
-        StatType memory stat // @dev updated working
-    ) private pure returns (uint256) {
+        StatType memory stat // @dev updated working    //@auditV2 should be made public to know about price before hand
+    ) public pure returns (uint256) {
         return ((BASE_PRICE_IN_MATIC) * statPriceMultiplier__(stat)) / 100;
     }
 

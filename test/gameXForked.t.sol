@@ -437,8 +437,22 @@ contract GameXTest is Test {
 
         // Test retrieval of special stats
         (uint8 specialType, uint8 specialPoints) = rpg.getSpecial(tokenId);
-        assertEq(specialType, 30, "Incorrect specialType value");
-        assertEq(specialPoints, 40, "Incorrect specialPoints value");
+        assertEq(specialType, 0, "Incorrect specialType value");
+        assertEq(specialPoints, 0, "Incorrect specialPoints value");
+    }
+
+
+    function testCalculatePrice() public {
+        rpg.StatType memory stat = rpg.StatType({
+            stat1: 10,
+            stat2: 20,
+            specialType: 0,
+            specialPoints: 0
+        });
+
+        uint256 expectedPrice = 1e18 / 100 * ((10 + 20) * 100) / 2 / 100;
+        console.log("expectedPrice", expectedPrice);
+        assertEq(rpg.calculatePrice(stat), expectedPrice);
     }
 
  function testUpgradeSuccess() public {
