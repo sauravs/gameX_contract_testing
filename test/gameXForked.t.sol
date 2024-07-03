@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
 import {RPGItemNFT} from "../src/RPG.sol";
+import {RPGItemUtils} from "../src/RPGItemUtils.sol";
 import {RPGItemNFT_RECEIVER} from "../src/RPG_RECEIVER.sol";
 import {CCIP_RPG_SENDER} from "../src/ccip_rpg_sender.sol";
 import {CCIP_RPG_RECEIVER} from "../src/ccip_rpg_receiver.sol";
@@ -68,6 +69,8 @@ contract GameXTest is Test {
 
         rpg = new RPGItemNFT();
 
+       
+
         // deploy the CCIP_RPG_SENDER.sol contract on the ethereum sapolia chain(source chain)
 
         ccipRpgSender = new CCIP_RPG_SENDER(sepoliaNetworkDetails.routerAddress, 900000);
@@ -83,6 +86,8 @@ contract GameXTest is Test {
         // deploy the RPG_RECEIVER.sol contract on the arbitrum sapolia chain(destination chain)
 
         rpg_receiver = new RPGItemNFT_RECEIVER();
+
+
 
         // deploy the CCIP_RPG_RECEIVER.sol contract on the arbitrum sapolia chain(destination chain)
 
@@ -443,16 +448,19 @@ contract GameXTest is Test {
 
 
     function testCalculatePrice() public {
-        rpg.StatType memory stat = rpg.StatType({
+          vm.selectFork(sepoliaFork);  
+
+        RPGItemUtils.StatType memory stat = RPGItemUtils.StatType({
             stat1: 10,
             stat2: 20,
             specialType: 0,
             specialPoints: 0
-        });
+        }); 
+
 
         uint256 expectedPrice = 1e18 / 100 * ((10 + 20) * 100) / 2 / 100;
         console.log("expectedPrice", expectedPrice);
-        assertEq(rpg.calculatePrice(stat), expectedPrice);
+        assertEq(rpg.calculatePrice(stat), expectedPrice, "Price calculation for stat1 is incorrect");
     }
 
  function testUpgradeSuccess() public {
