@@ -123,8 +123,8 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
         return (
             stats.stat1 + baseStat.stat1,
             stats.stat2 + baseStat.stat2,
-            stats.specialType + baseStat.specialType,
-            stats.specialPoints + baseStat.specialPoints
+            stats.specialType + baseStat.specialType,   // 1 + 30 =31
+            stats.specialPoints + baseStat.specialPoints // 5+ 40 = 45
         );
     }
 
@@ -203,6 +203,10 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
         return finalTokenURI;
     }
 
+    // by upgrading stats will be incremented by +3
+    //@auditV2 as per the current function logic does anyone eligible to mint from anyone behalf?
+    //@auditV2 as per upgrade function how much user has to pay ? does user can check in advance
+
     function upgrade(uint256 tokenId) public payable isTokenMinted(tokenId) isUnlocked(tokenId) {
         StatType memory previousStat = upgradeMapping[tokenId];
         StatType memory newStat = calculateUpgrade(previousStat);
@@ -234,8 +238,8 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     function calculatePrice(
         StatType memory stat // @dev updated working    //@auditV2 should be made public to know about price before hand
     ) public pure returns (uint256) {
-        return ((BASE_PRICE_IN_MATIC) * statPriceMultiplier__(stat)) / 100;
-    }
+        return ((BASE_PRICE_IN_MATIC) * statPriceMultiplier__(stat)) / 100;  //((1e18/100)*1500)/100 = 150,000,000,000 =0.00015 ether
+    }                                                                       // (*1500)/100 = 10e16*15 = 150000000000000000 = 0.15ether10e16
 
     // @audit power level -> 0 ,1 ,3  // basically it shows value of that asset in marketplace
     function powerLevel__(uint256 tokenId) public view returns (uint256) {
@@ -256,12 +260,12 @@ contract RPGItemNFT is ERC721, Ownable, RPGItemUtils {
     }
 
     function statPriceMultiplier__(StatType memory stat) private pure returns (uint256) {
-        return ((uint256(stat.stat1) + uint256(stat.stat2)) * 100) / 2; //For considering decimal (denominator averageing out)
+        return ((uint256(stat.stat1) + uint256(stat.stat2)) * 100) / 2; //(10+20)*100/2 = 1500
     }
 
     //@audit could be made private
     //@dev done
-    function calculateUpgrade(StatType memory previousStat) public returns (StatType memory) {
+    function calculateUpgrade(StatType memory previousStat) public returns (StatType memory) { //@auditV2 does calculate upgrade should always return previous stat + 3
         bytes32 hash = _generateStatHash(previousStat);
         StatType memory newStat = newStatMap[hash];
         if (isEmptyStat(newStat)) {

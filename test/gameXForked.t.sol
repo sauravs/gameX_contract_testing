@@ -458,10 +458,45 @@ contract GameXTest is Test {
         }); 
 
 
-        uint256 expectedPrice = 1e18 / 100 * ((10 + 20) * 100) / 2 / 100;
+        uint256 expectedPrice = (1e18 / 100 * ((10 + 20) * 100) / 2) / 100;     // 150000000000000000
         console.log("expectedPrice", expectedPrice);
         assertEq(rpg.calculatePrice(stat), expectedPrice, "Price calculation for stat1 is incorrect");
     }
+
+
+
+function testCalculateUpgrade() public {
+
+        vm.selectFork(sepoliaFork);
+        // Initial stat
+        RPGItemUtils.StatType memory initialStat = RPGItemUtils.StatType({
+            stat1: 10,
+            stat2: 20,
+            specialType: 1,
+            specialPoints: 5
+        });
+
+        // Expected upgraded stat
+        RPGItemUtils.StatType memory expectedStat = RPGItemUtils.StatType({
+            stat1: 13, // 10 + 3
+            stat2: 23, // 20 + 3
+            specialType: 1,
+            specialPoints: 5
+        });
+
+        // Calculate upgraded stat
+        RPGItemUtils.StatType memory upgradedStat = rpg.calculateUpgrade(initialStat);
+
+        assertEq(upgradedStat.stat1, expectedStat.stat1, "Stat1 did not upgrade correctly");
+        assertEq(upgradedStat.stat2, expectedStat.stat2, "Stat2 did not upgrade correctly");
+        assertEq(upgradedStat.specialType, expectedStat.specialType, "SpecialType did not remain the same");
+        assertEq(upgradedStat.specialPoints, expectedStat.specialPoints, "SpecialPoints did not remain the same");
+    }
+
+
+
+
+
 
  function testUpgradeSuccess() public {
 
@@ -478,22 +513,44 @@ contract GameXTest is Test {
         address newOwner = rpg.ownerOf(tokenId);
         assertEq(newOwner, minterA, "Token was not minted correctly");
 
-        uint256 initialBalance = address(rpg).balance;
-        uint256 BASE_PRICE_IN_MATIC = 1e18 / 100; //0.01 matic @auditV2: what is this for
-        uint256 upgradeCost = BASE_PRICE_IN_MATIC; // Adjust this based on how you calculate the upgrade cost in your contract
-        console.log("upgradeCost", upgradeCost);
-        console.log("initialBalance", initialBalance);
-        // // Send enough MATIC to cover the upgrade cost
 
-        vm.deal(minterB, 100 ether);
-        vm.startPrank(minterB);
-        rpg.upgrade{value: 1 ether}(tokenId);
+         RPGItemUtils.StatType memory initialStat = RPGItemUtils.StatType({
+            stat1: 10,
+            stat2: 20,
+            specialType: 30,
+            specialPoints: 40
+        });
+
+        // Expected upgraded stat
+        RPGItemUtils.StatType memory expectedStat = RPGItemUtils.StatType({
+            stat1: 13, // 10 + 3
+            stat2: 23, // 20 + 3
+            specialType: 30,
+            specialPoints: 40
+        });
+
+      // Calculate upgraded stat
+       RPGItemUtils.StatType memory upgradedStat = rpg.calculateUpgrade(initialStat);
+
+
+         // calculate the upgrade cost
+
+       uint256 upgradeCost =  rpg.calculatePrice(upgradedStat);
+
+        vm.deal(minterA, 100 ether);
+        vm.startPrank(minterA);
+        rpg.upgrade{value: upgradeCost}(tokenId);
         vm.stopPrank();
 
-        // StatType memory upgradedStat = rpg.upgradeMapping(tokenId);
-        // assertTrue(upgradedStat.stat1 > 10 && upgradedStat.stat2 > 10, "Stats were not upgraded");
-        // assertEq(address(rpg).balance, initialBalance + upgradeCost, "Upgrade cost was not transferred");
-        // vm.stopPrank();
+         // assert the upgraded stats
+
+        (uint8 stat1, uint8 stat2, uint8 specialType, uint8 specialPoints) = rpg.getTokenStats(tokenId);
+        assertEq(stat1, expectedStat.stat1, "Stat1 did not upgrade correctly");
+        assertEq(stat2, expectedStat.stat2, "Stat2 did not upgrade correctly");
+        assertEq(specialType, expectedStat.specialType, "SpecialType did not remain the same");  // 30:1
+        assertEq(specialPoints, expectedStat.specialPoints, "SpecialPoints did not remain the same"); // 40:5
+
+
     }
 
     function testUpgradeForUnmintedToken() public {
